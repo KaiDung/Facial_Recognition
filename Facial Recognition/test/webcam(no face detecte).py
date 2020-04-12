@@ -18,6 +18,7 @@ import embeddings_pre
 import h5py
 import os
 import time
+import requests
 #import matplotlib.pyplot as plt
 # In[1]:Load target features
 #open camera
@@ -27,15 +28,66 @@ left_h = 160
 face_scale = 228
 in_or_out = 0
 #include target face
+'''
 if os.path.exists('../pictures/embedding.h5'):
     f=h5py.File('../pictures/embedding.h5','r')
     class_arr=f['class_name'][:]
-    print("class = ",class_arr)
+    #print("class = ",class_arr)
     class_arr=[k.decode() for k in class_arr]
     emb_arr=f['embeddings'][:]
 else:
     class_arr = []
     emb_arr = []
+#print(emb_arr.type)
+'''
+#從資料庫抓特徵(先從str改float，再從float64轉float32)
+r = requests.get('http://140.136.150.100/download.php')
+
+hold =""
+stop=0
+arr1 = []
+arr2 = []
+
+for char in r.text:
+    hold += char
+    if char == '{' or char == '}':
+        stop+=1
+    if stop == 2:
+        #print(hold,"\n\n")
+        data = eval(hold)
+        arr1.append(data['user_name'])
+        
+        flag =0
+        hold2=""
+        arr4=[]
+        #print(arr1)
+        #print(data['embedding'],"\n")
+        for ch in data['embedding']:
+    
+            if ch =='[' or ch==']' or ch==' ':
+                temp = ch
+            else:
+                hold2+=ch
+              
+            try:
+                if ch==' ' or ch==']':
+                    if flag ==0 :
+                        #print(float(hold))
+                        arr4.append(np.float32(hold2)) 
+                        flag=1
+                        hold2 = ""
+            except:
+                continue
+            if ch!=' ' and flag ==1:
+                flag=0
+                
+        arr2.append(arr4)
+        stop=0
+        hold=""
+class_arr = np.array(arr1)
+emb_arr = np.array(arr2)
+
+
 # In[2]:Load Qt UI & setting function
 class GUI_window(QtWidgets.QMainWindow):
     def __init__(self,parent=None):
@@ -49,7 +101,12 @@ class GUI_window(QtWidgets.QMainWindow):
         self.ui.pushButton.clicked.connect(self.save_image)
         self.ui.Stop_Button.clicked.connect(self.stop)
         self.ui.lineEdit.returnPressed.connect(self.save_image)
-        self.ui.reload_image.clicked.connect(self.reload_paremeter)
+        
+        #由h5抓特徵資料
+        #self.ui.reload_image.clicked.connect(self.reload_paremeter)
+        #由資料庫抓取資料
+        self.ui.reload_image.clicked.connect(self.reload)
+        
         self.ui.close_button.clicked.connect(self.close_camera)
         self.ui.tabWidget.setTabIcon(0,QtGui.QIcon("home.png"))
         self.ui.tabWidget.setIconSize(QtCore.QSize(30,30))
@@ -120,13 +177,18 @@ class GUI_window(QtWidgets.QMainWindow):
             f.close()
             class_arr = []
             emb_arr = []
-            embeddings_pre.main()
-            f=h5py.File('../pictures/embedding.h5','r')
-            class_arr=f['class_name'][:]
-            class_arr=[k.decode() for k in class_arr]
-            emb_arr=f['embeddings'][:]
+            
+            embeddings_pre.main() #重新執行特徵分析並上傳資料庫
+            reload()
+            
+            #f=h5py.File('../pictures/embedding.h5','r')
+            #class_arr=f['class_name'][:]
+            #class_arr=[k.decode() for k in class_arr]
+            #emb_arr=f['embeddings'][:]
+            
             print('built complite')
             var = self.ui.lineEdit.setText('')
+    '''
     def reload_paremeter(self):
         global f,class_arr,emb_arr
         f.close()
@@ -138,6 +200,58 @@ class GUI_window(QtWidgets.QMainWindow):
         class_arr=[k.decode() for k in class_arr]
         emb_arr=f['embeddings'][:]
         print('built complete')
+    '''
+    #從資料庫抓取特徵
+    
+    def reload(self):
+        global class_arr,emb_arr
+        r = requests.get('http://140.136.150.100/download_test.php')
+
+        hold =""
+        stop=0
+        arr1 = []
+        arr2 = []
+        
+        for char in r.text:
+            hold += char
+            if char == '{' or char == '}':
+                stop+=1
+            if stop == 2:
+                #print(hold,"\n\n")
+                data = eval(hold)
+                arr1.append(data['user_name'])
+                
+                flag =0
+                hold2=""
+                arr4=[]
+                #print(arr1)
+                #print(data['embedding'],"\n")
+                for ch in data['embedding']:
+            
+                    if ch =='[' or ch==']' or ch==' ':
+                        temp = ch
+                    else:
+                        hold2+=ch
+                      
+                    try:
+                        if ch==' ' or ch==']':
+                            if flag ==0 :
+                                #print(float(hold))
+                                arr4.append(np.float32(hold2)) 
+                                flag=1
+                                hold2 = ""
+                    except:
+                        continue
+                    if ch!=' ' and flag ==1:
+                        flag=0
+                        
+                arr2.append(arr4)
+                stop=0
+                hold=""
+        class_arr = np.array(arr1)
+        emb_arr = np.array(arr2)
+        print(emb_arr)
+        
     def show_image(self):
         global emb_arr,class_arr
         global in_or_out
@@ -154,8 +268,9 @@ class GUI_window(QtWidgets.QMainWindow):
                 embs = sess.run(embeddings, feed_dict=feed_dict) 
                 face_class=['Others']
                 diff = []
+                
                 for emb in emb_arr:
-                    diff.append(np.mean(np.square(embs[0]-emb),axis=1))
+                    diff.append(np.mean(np.square(embs[0]-emb)))
                 min_diff=min(diff)
                 if min_diff<THRED:
                     index=np.argmin(diff)
@@ -175,12 +290,13 @@ class GUI_window(QtWidgets.QMainWindow):
                 if in_or_out == 0 and face_class[0]!='Others':
                     print(face_class[0],ntime)
                     in_or_out = 1
-    
+                
                 cv2.putText(img, '{:.4f}'.format(t), (10, 30),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
                 
-                cv2.putText(img, '{:.4f}'.format(min_diff[0]), (100, 30),
+                cv2.putText(img, '{:.4f}'.format(min_diff), (100, 30),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
+                
             else:
                 img=frame
                 t3 = cv2.getTickCount()
@@ -249,6 +365,7 @@ class GUI_window(QtWidgets.QMainWindow):
     def stop(self):
         self.close()
         print("stop pressed")
+        
 
     # In[3]:detect face       
 def cv2_face(image):
@@ -272,6 +389,7 @@ def prewhiten(x):
     std_adj = np.maximum(std,1.0/np.sqrt(x.size))
     y = np.multiply(np.subtract(x,mean),1/std_adj)
     return y
+
 
 stylesheet = '''
         QTabWidget {
@@ -310,7 +428,6 @@ stylesheet = '''
             min-height: 50px;
         }
 '''
-
 # In[4]:Run program        
 if __name__ == "__main__":
     import sys
@@ -328,3 +445,4 @@ if __name__ == "__main__":
             app.setStyleSheet(stylesheet)
         myApp = GUI_window()
         sys.exit(app.exec_())
+       

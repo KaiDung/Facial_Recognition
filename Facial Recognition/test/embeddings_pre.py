@@ -13,6 +13,7 @@ import cv2
 import h5py
 import matplotlib.pyplot as plt
 import requests
+
 # In[2]:
 
 
@@ -65,10 +66,7 @@ def cv2_face():
                 print(scaled.shape)
                 scaled_arr.append(scaled)
                 class_names_arr.append(step)
-    
-                # calculate embeddings
                 feed_dict = { images_placeholder: scaled_arr, phase_train_placeholder:False ,keep_probability_placeholder:1.0}
-                embs.append(sess.run(embeddings, feed_dict=feed_dict))
                 #---------------------------------上傳資料庫---------------------------------
                 x = sess.run(embeddings, feed_dict=feed_dict)
                 Data = {
@@ -77,6 +75,10 @@ def cv2_face():
                 }
                 conn = requests.post('http://140.136.150.100/upload.php', data = Data)
                 #----------------------------------------------------------------------------
+                
+                # calculate embeddings
+                #feed_dict = { images_placeholder: scaled_arr, phase_train_placeholder:False ,keep_probability_placeholder:1.0}
+                embs.append(sess.run(embeddings, feed_dict=feed_dict))
     return embs,class_names_arr
 # In[]
 def prewhiten(x):
