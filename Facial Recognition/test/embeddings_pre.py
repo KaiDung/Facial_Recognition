@@ -66,6 +66,7 @@ def cv2_face():
                 print(scaled.shape)
                 scaled_arr.append(scaled)
                 class_names_arr.append(step)
+                
                 feed_dict = { images_placeholder: scaled_arr, phase_train_placeholder:False ,keep_probability_placeholder:1.0}
                 #---------------------------------上傳資料庫---------------------------------
                 x = sess.run(embeddings, feed_dict=feed_dict)
@@ -73,7 +74,7 @@ def cv2_face():
                     "user_name" : step,
                     "embedding" : str(x)
                 }
-                conn = requests.post('http://140.136.150.100/upload.php', data = Data)
+                conn = requests.post("http://140.136.150.100/upload.php", data = Data)
                 #----------------------------------------------------------------------------
                 
                 # calculate embeddings

@@ -40,8 +40,9 @@ else:
     emb_arr = []
 #print(emb_arr.type)
 '''
+'''
 #從資料庫抓特徵(先從str改float，再從float64轉float32)
-r = requests.get('http://140.136.150.100/download.php')
+r = requests.get("http://140.136.150.100/download.php")
 
 hold =""
 stop=0
@@ -86,11 +87,14 @@ for char in r.text:
         hold=""
 class_arr = np.array(arr1)
 emb_arr = np.array(arr2)
-
-
+'''
 # In[2]:Load Qt UI & setting function
 class GUI_window(QtWidgets.QMainWindow):
     def __init__(self,parent=None):
+        
+        #載入資料庫的資料
+        self.reload()
+        
         QtWidgets.QMainWindow.__init__(self)
         #self.setWindowTitle('ggez')
         self.ui = uic.loadUi("webcam.ui",self)
@@ -206,11 +210,11 @@ class GUI_window(QtWidgets.QMainWindow):
         emb_arr=f['embeddings'][:]
         print('built complete')
     '''
-    #從資料庫抓取特徵
+    
     
     def reload(self):
         global class_arr,emb_arr
-        r = requests.get('http://140.136.150.100/download_test.php')
+        r = requests.get("http://140.136.150.100/download.php")
 
         hold =""
         stop=0
@@ -222,15 +226,12 @@ class GUI_window(QtWidgets.QMainWindow):
             if char == '{' or char == '}':
                 stop+=1
             if stop == 2:
-                #print(hold,"\n\n")
                 data = eval(hold)
                 arr1.append(data['user_name'])
                 
                 flag =0
                 hold2=""
                 arr4=[]
-                #print(arr1)
-                #print(data['embedding'],"\n")
                 for ch in data['embedding']:
             
                     if ch =='[' or ch==']' or ch==' ':
@@ -241,7 +242,6 @@ class GUI_window(QtWidgets.QMainWindow):
                     try:
                         if ch==' ' or ch==']':
                             if flag ==0 :
-                                #print(float(hold))
                                 arr4.append(np.float32(hold2)) 
                                 flag=1
                                 hold2 = ""
@@ -255,7 +255,7 @@ class GUI_window(QtWidgets.QMainWindow):
                 hold=""
         class_arr = np.array(arr1)
         emb_arr = np.array(arr2)
-        print(emb_arr)
+        print("Reload完成")
         
     def show_image(self):
         global emb_arr,class_arr
