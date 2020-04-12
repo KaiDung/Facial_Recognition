@@ -94,7 +94,7 @@ class GUI_window(QtWidgets.QMainWindow):
         QtWidgets.QMainWindow.__init__(self)
         #self.setWindowTitle('ggez')
         self.ui = uic.loadUi("webcam.ui",self)
-        self.ui.setFixedSize(self.size())
+        #self.ui.setFixedSize(self.size())
         self.ui.tabWidget.setTabText(0,"Main")
         self.ui.tabWidget.setTabText(1,"Setting")
         self.ui.Open_Button.clicked.connect(self.open_detect)
@@ -120,8 +120,10 @@ class GUI_window(QtWidgets.QMainWindow):
         self.i = 0
         
         self.label1 = QLabel(self)
-        self.label1.setFixedWidth(300)
-        self.label1.move(200, 60)
+        
+        #self.label1.move(200, 60)
+        #$self.label1.AlignCenter()
+        #self.label1.setAlignment(QtCore.Qt.AlignCenter)
         self.label1.setStyleSheet("QLabel{background:0;}"
                    "QLabel{color:rgb(300,300,300,120);font-size:30px;font-weight:bold;font-family:宋体;}"
                    )
@@ -129,12 +131,15 @@ class GUI_window(QtWidgets.QMainWindow):
         timer = QTimer(self)
         timer.timeout.connect(self.showtime)
         timer.start()
+        self.label1.setAlignment(QtCore.Qt.AlignCenter)
+        #self.label1.resize(self.width(),50)
         self.show()
         
     def showtime(self):
         ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
         #datetime = QDateTime.currentDateTime()
         #text = datetime.toString(Qt.ISODate)
+        self.label1.setGeometry(0, 50, self.width(),50)
         self.label1.setText(ntime)
     
     def keyPressEvent(self,event):
@@ -408,6 +413,7 @@ stylesheet = '''
             color: red;
         }
         QPushButton {
+            qproperty-alignment: AlignCenter;
             background-color: red;
             border-style: outset;
             border-width: 2px;
