@@ -18,19 +18,20 @@ import requests
 
 
 def main():
-    path='../pictures/embedding.h5'
-    if os.path.exists(path):
-        os.remove(path)
-        print('embedding have been removed！！！')
+    cv2_face()
+#    path='../pictures/embedding.h5'
+#    if os.path.exists(path):
+#        os.remove(path)
+#        print('embedding have been removed！！！')
 
-    embs,class_arr=cv2_face()
+#    embs,class_arr=cv2_face()
    
-    f=h5py.File('../pictures/embedding.h5','w')
-    class_arr=[i.encode() for i in class_arr]
-    embs = [j for j in embs]
-    f.create_dataset('class_name',data=class_arr)
-    f.create_dataset('embeddings',data=embs)
-    f.close()
+#    f=h5py.File('../pictures/embedding.h5','w')
+#    class_arr=[i.encode() for i in class_arr]
+#    embs = [j for j in embs]
+#    f.create_dataset('class_name',data=class_arr)
+#    f.create_dataset('embeddings',data=embs)
+#    f.close()
 
 
 
@@ -51,8 +52,12 @@ def cv2_face():
         phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
         keep_probability_placeholder= tf.get_default_graph().get_tensor_by_name('keep_probability:0')
         for step in files1:
-            print(step)
+            #之後就會刪除h5檔 這個if也可以砍掉
+            if step == "embedding.h5":
+                continue
+            
             l_image = os.path.join(path,step)
+            
             al_image = os.listdir(l_image)
             for i in al_image:
                 scaled_arr=[]
@@ -63,7 +68,7 @@ def cv2_face():
                 scaled = np.array(scaled).reshape(160, 160, 1)
                 scaled = prewhiten(scaled)
                 #check shape
-                print(scaled.shape)
+                #print(scaled.shape)
                 scaled_arr.append(scaled)
                 class_names_arr.append(step)
                 
@@ -79,8 +84,8 @@ def cv2_face():
                 
                 # calculate embeddings
                 
-                embs.append(sess.run(embeddings, feed_dict=feed_dict))
-    return embs,class_names_arr
+                #embs.append(sess.run(embeddings, feed_dict=feed_dict))
+    #return embs,class_names_arr
 # In[]
 def prewhiten(x):
     mean = np.mean(x)

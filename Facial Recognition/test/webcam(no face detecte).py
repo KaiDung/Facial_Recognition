@@ -40,54 +40,7 @@ else:
     emb_arr = []
 #print(emb_arr.type)
 '''
-'''
-#從資料庫抓特徵(先從str改float，再從float64轉float32)
-r = requests.get("http://140.136.150.100/download.php")
 
-hold =""
-stop=0
-arr1 = []
-arr2 = []
-
-for char in r.text:
-    hold += char
-    if char == '{' or char == '}':
-        stop+=1
-    if stop == 2:
-        #print(hold,"\n\n")
-        data = eval(hold)
-        arr1.append(data['user_name'])
-        
-        flag =0
-        hold2=""
-        arr4=[]
-        #print(arr1)
-        #print(data['embedding'],"\n")
-        for ch in data['embedding']:
-    
-            if ch =='[' or ch==']' or ch==' ':
-                temp = ch
-            else:
-                hold2+=ch
-              
-            try:
-                if ch==' ' or ch==']':
-                    if flag ==0 :
-                        #print(float(hold))
-                        arr4.append(np.float32(hold2)) 
-                        flag=1
-                        hold2 = ""
-            except:
-                continue
-            if ch!=' ' and flag ==1:
-                flag=0
-                
-        arr2.append(arr4)
-        stop=0
-        hold=""
-class_arr = np.array(arr1)
-emb_arr = np.array(arr2)
-'''
 # In[2]:Load Qt UI & setting function
 class GUI_window(QtWidgets.QMainWindow):
     def __init__(self,parent=None):
@@ -158,7 +111,7 @@ class GUI_window(QtWidgets.QMainWindow):
             print("Esc pressed")
             self.close()
     def save_image(self):
-        global f,emb_arr,class_arr
+        global emb_arr,class_arr
         var = self.ui.lineEdit.text()
         if self.check == 0:
             self.cap = cv2.VideoCapture(0)
@@ -183,19 +136,20 @@ class GUI_window(QtWidgets.QMainWindow):
             frame = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
             showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
             self.ui.label_2.setPixmap(QtGui.QPixmap.fromImage(showImage))
-            f.close()
+            #f.close()
             class_arr = []
             emb_arr = []
             
             embeddings_pre.main() #重新執行特徵分析並上傳資料庫
-            reload()
+            
+            self.reload()
             
             #f=h5py.File('../pictures/embedding.h5','r')
             #class_arr=f['class_name'][:]
             #class_arr=[k.decode() for k in class_arr]
             #emb_arr=f['embeddings'][:]
             
-            print('built complite')
+            print('save complete')
             var = self.ui.lineEdit.setText('')
     '''
     def reload_paremeter(self):
@@ -275,7 +229,7 @@ class GUI_window(QtWidgets.QMainWindow):
                 diff = []
                 
                 for emb in emb_arr:
-                    diff.append(np.mean(np.square(embs[0]-emb)))
+                    diff.append(np.mean(np.square(embs[0] -emb)))
                 min_diff=min(diff)
                 if min_diff<THRED:
                     index=np.argmin(diff)
@@ -358,14 +312,14 @@ class GUI_window(QtWidgets.QMainWindow):
                     self.check = 0
             self.i = 1
     def closeEvent(self,event):
-        global f
+        #global f
         if self.check == 1:
             self.timer_camera.stop() 
             self.cap.release()
             print("camera open")
         else:
             print("camera close")
-        f.close()
+        #f.close()
         print("close window")
     def stop(self):
         self.close()
