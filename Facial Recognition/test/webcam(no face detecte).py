@@ -53,12 +53,16 @@ class GUI_window(QtWidgets.QMainWindow):
         self.ui = uic.loadUi("webcam.ui",self)
         #self.ui.setFixedSize(self.size())
         self.ui.tabWidget.setTabText(0,"Main")
-        self.ui.tabWidget.setTabText(1,"Setting")
+        self.ui.tabWidget.setTabText(1,"Search")
+        self.ui.tabWidget.setTabText(2,"Setting")
+        
         self.ui.Open_Button.clicked.connect(self.open_detect)
         self.ui.pushButton.clicked.connect(self.save_image)
         self.ui.Stop_Button.clicked.connect(self.stop)
         self.ui.lineEdit.returnPressed.connect(self.save_image)
         
+        self.ui.Send_Button.clicked.connect(self.search_event)
+        self.ui.lineEdit_2.returnPressed.connect(self.search_event)
         #由h5抓特徵資料
         #self.ui.reload_image.clicked.connect(self.reload_paremeter)
         #由資料庫抓取資料
@@ -67,7 +71,7 @@ class GUI_window(QtWidgets.QMainWindow):
         self.ui.close_button.clicked.connect(self.close_camera)
         self.ui.tabWidget.setTabIcon(0,QtGui.QIcon("home.png"))
         self.ui.tabWidget.setIconSize(QtCore.QSize(30,30))
-        self.ui.tabWidget.setTabIcon(1,QtGui.QIcon("setting.png"))
+        self.ui.tabWidget.setTabIcon(2,QtGui.QIcon("setting.png"))
         self.ui.tabWidget.setIconSize(QtCore.QSize(30,30))
         self.setWindowIcon(QtGui.QIcon("window_icon.png"))
         #QTabWidget>QWidget>QWidget{background: gray;}
@@ -91,6 +95,18 @@ class GUI_window(QtWidgets.QMainWindow):
         self.label1.setAlignment(QtCore.Qt.AlignCenter)
         #self.label1.resize(self.width(),50)
         self.show()
+    def search_event(self):
+        search_object = self.ui.lineEdit_2.text()
+        print(search_object)
+        Data = {
+            "user_name" : search_object
+            }
+        conn = requests.post('http://140.136.150.100/search.php', data = Data)
+        print(conn.text)
+        var = self.ui.lineEdit_2.setText('')
+        # Data = {
+                #"user_name" : search_object
+            #}
         
     def showtime(self):
         ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
@@ -218,7 +234,7 @@ class GUI_window(QtWidgets.QMainWindow):
         rat,frame = self.cap.read()
         
         if rat == True:
-            frame = cv2.flip(frame,1)
+            frame = cv2.flip(frame,2)
             t1=cv2.getTickCount()
             img,scaled_arr = cv2_face(frame)
             if scaled_arr is not None:
@@ -247,7 +263,13 @@ class GUI_window(QtWidgets.QMainWindow):
                     in_or_out = 0
                 
                 if in_or_out == 0 and face_class[0]!='Others':
+                    record_data = {
+                          "user_name" : face_class[0],
+                          "time" : ntime      
+                    }
+                    conn = requests.post("http://140.136.150.100/record.php",data = record_data)
                     print(face_class[0],ntime)
+                    print(conn.text)
                     in_or_out = 1
                 
                 cv2.putText(img, '{:.4f}'.format(t), (10, 30),
@@ -273,7 +295,7 @@ class GUI_window(QtWidgets.QMainWindow):
         
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
-        if self.ui.tabWidget.currentIndex() != 1:
+        if self.ui.tabWidget.currentIndex() != 2:
             self.ui.label.setPixmap(QtGui.QPixmap.fromImage(showImage))
         else:
             self.ui.label_2.setPixmap(QtGui.QPixmap.fromImage(showImage))
