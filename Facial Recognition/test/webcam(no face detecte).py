@@ -27,6 +27,7 @@ left_w = 200
 left_h = 160
 face_scale = 228
 in_or_out = 0
+open_auto_detect=1
 #include target face
 '''
 if os.path.exists('../pictures/embedding.h5'):
@@ -48,7 +49,6 @@ class GUI_window(QtWidgets.QMainWindow):
         
         #載入資料庫的資料
         self.reload()
-        
         QtWidgets.QMainWindow.__init__(self)
         #self.setWindowTitle('ggez')
         self.ui = uic.loadUi("webcam.ui",self)
@@ -61,6 +61,10 @@ class GUI_window(QtWidgets.QMainWindow):
         self.ui.pushButton.clicked.connect(self.save_image)
         self.ui.Stop_Button.clicked.connect(self.stop)
         self.ui.lineEdit.returnPressed.connect(self.save_image)
+        
+        self.ui.auto_detect_Button.clicked.connect(self.auto_detect)
+        self.ui.auto_detect_close_Button.clicked.connect(self.auto_detect_close)
+        #self.ui.auto_detect_close_Button.clicked.connect(self.auto_detect_close)
         
         self.ui.Send_Button.clicked.connect(self.search_event)
         self.ui.lineEdit_2.returnPressed.connect(self.search_event)
@@ -80,6 +84,7 @@ class GUI_window(QtWidgets.QMainWindow):
         self.tabWidget.setTabShape(tab_shape)
         self.check = 0
         self.i = 0
+        self.auto_detect_check = 1
         
         self.label1 = QLabel(self)
         
@@ -140,16 +145,20 @@ class GUI_window(QtWidgets.QMainWindow):
         ret,frame = self.cap.read()
         #gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         #gray = cv2.GaussianBlur(gray, (5,5), 0, 0)
-        faces = faceCascade.detectMultiScale(frame, 1.1, 5)
-        for (x,y,w,h) in faces:
-            cv2.rectangle(frame,(x,y),(x+w,y+h),(0,255,0),2)
-            #roi_gray = gray[y:y+h, x:x+w]
-            roi_color = frame[y:y+h, x:x+w]
-        #cv2.rectangle(frame,(left_w,left_h),(left_w+face_scale,left_h+face_scale),(0,255,0),2)
-        face = frame[left_h:left_h+face_scale,left_w:left_w+face_scale]   
-        for (x,y,w,h) in faces:
-            if x+y+w+h!=0:
-                face = frame[y:y+h,x:x+w]  
+        if open_auto_detect == 1:
+            faces = faceCascade.detectMultiScale(frame, 1.1, 5)
+            for (x,y,w,h) in faces:
+                cv2.rectangle(frame,(x,y),(x+w,y+h),(0,255,0),2)
+                #roi_gray = gray[y:y+h, x:x+w]
+                roi_color = frame[y:y+h, x:x+w]
+            #cv2.rectangle(frame,(left_w,left_h),(left_w+face_scale,left_h+face_scale),(0,255,0),2)
+            face = frame[left_h:left_h+face_scale,left_w:left_w+face_scale]   
+            for (x,y,w,h) in faces:
+                if x+y+w+h!=0:
+                    face = frame[y:y+h,x:x+w]  
+        else:
+            cv2.rectangle(frame,(left_w,left_h),(left_w+face_scale,left_h+face_scale),(0,255,0),2)
+            face = frame[left_h:left_h+face_scale,left_w:left_w+face_scale]   
         #cv2.rectangle(frame,(left_w,left_h),(left_w+face_scale,left_h+face_scale),(0,255,0),2)
         #face = frame[left_h:left_h+face_scale,left_w:left_w+face_scale]            
         if var!='':
@@ -238,7 +247,7 @@ class GUI_window(QtWidgets.QMainWindow):
         print("Reload完成")
         
     def show_image(self):
-        global emb_arr,class_arr
+        global emb_arr,class_arr,t1
         global in_or_out
         
         rat,frame = self.cap.read()
@@ -294,8 +303,8 @@ class GUI_window(QtWidgets.QMainWindow):
                 t = (t3-t1)/cv2.getTickFrequency()
                 cv2.putText(img, '{:.4f}'.format(t), (10, 20),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
-#                cv2.putText(img, '{:.4f}'.format(min_diff), (100, 20),
-#                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
+                #cv2.putText(img, '{:.4f}'.format(min_diff), (100, 20),
+                    #cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
         else:
             img=frame
             t4 = cv2.getTickCount()
@@ -322,6 +331,18 @@ class GUI_window(QtWidgets.QMainWindow):
             self.timer_camera.stop()
             self.cap.release()
             self.check = 0
+    def auto_detect(self):
+        global open_auto_detect
+        if self.auto_detect_check == 0:
+            if open_auto_detect== 0:
+                open_auto_detect=1
+            self.auto_detect_check = 1
+    def auto_detect_close(self):
+        global open_auto_detect
+        if self.auto_detect_check== 1:
+            if open_auto_detect== 1:
+                open_auto_detect=0
+            self.auto_detect_check = 0
     def changeEvent(self,event):
         print(event.type())
         if event.type() == 99:#99是正常視窗狀態
@@ -363,17 +384,22 @@ def cv2_face(image):
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     scaled_arr=[]
-    faces = faceCascade.detectMultiScale(gray, 1.1, 5)
-    for (x,y,w,h) in faces:
-        cv2.rectangle(image,(x,y),(x+w,y+h),(0,255,0),2)
-        #roi_gray = gray[y:y+h, x:x+w]
-        roi_color = image[y:y+h, x:x+w]
-    
-    #cv2.rectangle(image,(left_w,left_h),(left_w+face_scale,left_h+face_scale),(0,255,0),2)
-    face = gray[left_h:left_h+face_scale,left_w:left_w+face_scale]
-    for (x,y,w,h) in faces:
-        if x+y+w+h!=0:
-            face = gray[y:y+h,x:x+w]
+    if open_auto_detect == 1:
+        faces = faceCascade.detectMultiScale(gray, 1.1, 5)
+        for (x,y,w,h) in faces:
+            cv2.rectangle(image,(x,y),(x+w,y+h),(0,255,0),2)
+            #roi_gray = gray[y:y+h, x:x+w]
+            roi_color = image[y:y+h, x:x+w]
+        face = gray[left_h:left_h+face_scale,left_w:left_w+face_scale]
+        for (x,y,w,h) in faces:
+            if x+y+w+h!=0:
+                face = gray[y:y+h,x:x+w]
+    else:
+        cv2.rectangle(image,(left_w,left_h),(left_w+face_scale,left_h+face_scale),(0,255,0),2)
+        face = gray[left_h:left_h+face_scale,left_w:left_w+face_scale]
+   # for (x,y,w,h) in faces:
+       # if x+y+w+h!=0:
+           # face = gray[y:y+h,x:x+w]
     scaled =cv2.resize(face,(160,160),interpolation=cv2.INTER_LINEAR)
     scaled.astype(float)
     scaled = np.array(scaled).reshape(160, 160, 1)
