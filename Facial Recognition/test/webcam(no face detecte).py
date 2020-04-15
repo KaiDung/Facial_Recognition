@@ -40,7 +40,8 @@ else:
     emb_arr = []
 #print(emb_arr.type)
 '''
-
+cascPath = 'haarcascade_frontalface_default.xml'
+faceCascade = cv2.CascadeClassifier(cascPath)
 # In[2]:Load Qt UI & setting function
 class GUI_window(QtWidgets.QMainWindow):
     def __init__(self,parent=None):
@@ -139,9 +140,18 @@ class GUI_window(QtWidgets.QMainWindow):
         ret,frame = self.cap.read()
         #gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         #gray = cv2.GaussianBlur(gray, (5,5), 0, 0)
-        
-        cv2.rectangle(frame,(left_w,left_h),(left_w+face_scale,left_h+face_scale),(0,255,0),2)
-        face = frame[left_h:left_h+face_scale,left_w:left_w+face_scale]            
+        faces = faceCascade.detectMultiScale(frame, 1.1, 5)
+        for (x,y,w,h) in faces:
+            cv2.rectangle(frame,(x,y),(x+w,y+h),(0,255,0),2)
+            #roi_gray = gray[y:y+h, x:x+w]
+            roi_color = frame[y:y+h, x:x+w]
+        #cv2.rectangle(frame,(left_w,left_h),(left_w+face_scale,left_h+face_scale),(0,255,0),2)
+        face = frame[left_h:left_h+face_scale,left_w:left_w+face_scale]   
+        for (x,y,w,h) in faces:
+            if x+y+w+h!=0:
+                face = frame[y:y+h,x:x+w]  
+        #cv2.rectangle(frame,(left_w,left_h),(left_w+face_scale,left_h+face_scale),(0,255,0),2)
+        #face = frame[left_h:left_h+face_scale,left_w:left_w+face_scale]            
         if var!='':
             face = cv2.resize(face, (160, 160), interpolation=cv2.INTER_CUBIC )
             save_image = QtWidgets.QFileDialog.getExistingDirectory(self,"choose direction","../pictures")
@@ -352,16 +362,24 @@ class GUI_window(QtWidgets.QMainWindow):
 def cv2_face(image):
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    scaled_arr=[]  
-    cv2.rectangle(image,(left_w,left_h),(left_w+face_scale,left_h+face_scale),(0,255,0),2)
+    scaled_arr=[]
+    faces = faceCascade.detectMultiScale(gray, 1.1, 5)
+    for (x,y,w,h) in faces:
+        cv2.rectangle(image,(x,y),(x+w,y+h),(0,255,0),2)
+        #roi_gray = gray[y:y+h, x:x+w]
+        roi_color = image[y:y+h, x:x+w]
+    
+    #cv2.rectangle(image,(left_w,left_h),(left_w+face_scale,left_h+face_scale),(0,255,0),2)
     face = gray[left_h:left_h+face_scale,left_w:left_w+face_scale]
+    for (x,y,w,h) in faces:
+        if x+y+w+h!=0:
+            face = gray[y:y+h,x:x+w]
     scaled =cv2.resize(face,(160,160),interpolation=cv2.INTER_LINEAR)
     scaled.astype(float)
     scaled = np.array(scaled).reshape(160, 160, 1)
     scaled = prewhiten(scaled)
     scaled_arr.append(scaled)
     return image,scaled_arr
-       
    
 # In[4]prewhiten(calculate distance)
 def prewhiten(x):
