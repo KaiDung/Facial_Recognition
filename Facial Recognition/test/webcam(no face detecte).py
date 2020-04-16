@@ -270,7 +270,7 @@ class GUI_window(QtWidgets.QMainWindow):
         if rat == True:
             frame = cv2.flip(frame,2)
             t1=cv2.getTickCount()
-            img,scaled_arr = cv2_face(frame,auto_detect_check)
+            img,scaled_arr,face_x_y = cv2_face(frame,auto_detect_check)
             if scaled_arr is not None:
             
                 feed_dict = { images_placeholder: scaled_arr, phase_train_placeholder:False ,keep_probability_placeholder:1.0}
@@ -286,10 +286,20 @@ class GUI_window(QtWidgets.QMainWindow):
                     face_class[0]=class_arr[index]   
                 t2=cv2.getTickCount()
                 t=(t2-t1)/cv2.getTickFrequency()
-                cv2.putText(img, '{}'.format(face_class[0]), 
-                        (left_w, left_h), 
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        1,(0, 0, 255), 2)
+                
+                #寫名字
+                if  auto_detect_check == True:
+                    for (x,y,w,h) in face_x_y:
+                        cv2.putText(img, '{}'.format(face_class[0]), 
+                                (x, y), 
+                                cv2.FONT_HERSHEY_SIMPLEX,
+                                1,(0, 0, 255), 2)
+                        break
+                else:
+                    cv2.putText(img, '{}'.format(face_class[0]), 
+                                (left_w, left_h), 
+                                cv2.FONT_HERSHEY_SIMPLEX,
+                                1,(0, 0, 255), 2)
                 
                 ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
                 
@@ -328,6 +338,7 @@ class GUI_window(QtWidgets.QMainWindow):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
         
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        #呈現圖片
         showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
         if self.ui.tabWidget.currentIndex() != 2:
             self.ui.label.setPixmap(QtGui.QPixmap.fromImage(showImage))
@@ -387,16 +398,19 @@ def cv2_face(image,a_d_c):
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     scaled_arr=[]
+    faces = faceCascade.detectMultiScale(gray, 1.1, 5)
     if a_d_c == True:
-        faces = faceCascade.detectMultiScale(gray, 1.1, 5)
+        
         for (x,y,w,h) in faces:
             cv2.rectangle(image,(x,y),(x+w,y+h),(0,255,0),2)
             #roi_gray = gray[y:y+h, x:x+w]
             roi_color = image[y:y+h, x:x+w]
+            break
         face = gray[left_h:left_h+face_scale,left_w:left_w+face_scale]
         for (x,y,w,h) in faces:
             if x+y+w+h!=0:
                 face = gray[y:y+h,x:x+w]
+                break
     else:
         cv2.rectangle(image,(left_w,left_h),(left_w+face_scale,left_h+face_scale),(0,255,0),2)
         face = gray[left_h:left_h+face_scale,left_w:left_w+face_scale]
@@ -408,7 +422,7 @@ def cv2_face(image,a_d_c):
     scaled = np.array(scaled).reshape(160, 160, 1)
     scaled = prewhiten(scaled)
     scaled_arr.append(scaled)
-    return image,scaled_arr
+    return image,scaled_arr,faces
    
 # In[4]prewhiten(calculate distance)
 def prewhiten(x):
