@@ -338,6 +338,8 @@ class GUI_window(QtWidgets.QMainWindow):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
         
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        #圖片隨視窗改變
+        frame = cv2.resize(frame,(int((self.ui.label.height()-14)/3)*4,(int((self.ui.label.height()-14)/3)*3)))
         #呈現圖片
         showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
         if self.ui.tabWidget.currentIndex() != 2:
