@@ -74,7 +74,12 @@ class GUI_window(QtWidgets.QMainWindow):
         self.ui.auto_detect.clicked.connect(self.auto_detect_event)
         self.auto_detect.setStyleSheet("QPushButton{background:black;border-radius:12;}"
             )
-        self.widget.setStyleSheet("QWidget{border-width:2px;border-color:black;border-style:outset;height:100;border-radius:5px}")
+        self.widget.setStyleSheet("QWidget{border-width:2px;}"
+                                  "QWidget{border-color:black;}"
+                                  "QWidget{border-style:outset;}"
+                                  "QWidget{height:100;}"
+                                  "QWidget{border-radius:5px;}"
+                                  "QWidget{background-color:qlineargradient(x1 : 0, y1 : 0, x2 : 0, y2 : 1, stop :  0.0 #f5f9ff,stop :   0.5 #c7dfff,stop :   0.55 #afd2ff,stop :   1.0 #c0dbff);}")
         #self.label3 = QLabel(self)
         #self.label3.setGeometry(1, 49, 281, 54)
         self.ui.close_button.clicked.connect(self.close_camera)
@@ -297,8 +302,8 @@ class GUI_window(QtWidgets.QMainWindow):
         #偵測是否勾選自動偵測
         #auto_detect_check = self.ui.auto_detect_check.isChecked()
         #print(auto_detect_check)
-        if auto_detect_check == 1:
-            print("shit")
+        #if auto_detect_check == 1:
+            #print("shit")
         rat,frame = self.cap.read()
         
         if rat == True:
@@ -487,13 +492,20 @@ stylesheet = '''
         }
         QPushButton {
             qproperty-alignment: AlignCenter;
-            background-color: red;
+            background-color: qlineargradient(x1 : 0, y1 : 0, 
+                                              x2 : 0, y2 : 1, 
+                                             stop :  0.0 #f5f9ff,
+                                             stop :   0.5 #c7dfff,
+                                             stop :   0.55 #afd2ff,
+                                             stop :   1.0 #c0dbff);
             border-style: outset;
             border-width: 2px;
             border-radius: 10px;
             width: 280px;
             font-size: 50px;
             font: bold;
+            color: #006aff;
+            font: bold large "Arial";
             height: 50px;
             border-color: beige;
         }
