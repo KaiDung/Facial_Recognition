@@ -1,0 +1,82 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon May  4 18:25:42 2020
+
+@author: allen
+"""
+from __future__ import print_function
+import pickle
+import os.path
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from googleapiclient.http import MediaFileUpload
+import cv2
+
+def main():
+    case = input("輸入數字來選擇接下來的操作\n1 : 檢視資料夾\n2 : 新增資料夾\n3 : 上傳檔案\n")
+    print("case = ",case)
+    Case_Detect(case)
+    
+def Case_Detect(case):
+    
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+        service = build('drive', 'v3', credentials=creds)
+        
+    if case== '1' :
+        # Call the Drive v3 API
+        results = service.files().list(
+            pageSize=10, fields="nextPageToken, files(id, name)").execute()
+        items = results.get('files', [])
+    
+        if not items:
+            print('No files found.')
+        else:
+            print('Files:')
+            for item in items:
+                print(u'{0} ({1})'.format(item['name'], item['id']))
+    if case== '2' :
+        file_metadata = {
+            'name': 'Invoices',
+            'mimeType': 'application/vnd.google-apps.folder'
+        }
+        file =service.files().create(body=file_metadata,
+                                            fields='id').execute()
+        print('Folder ID: %s' % file.get('id'))
+        
+    if case == '3':
+        results = service.files().list(
+            pageSize=10, fields="nextPageToken, files(id, name)").execute()
+        
+        items = results.get('files', [])
+        
+        folder_id = None
+        for item in items:
+            if item['name'] == "Invoices":
+                folder_id = item['id']
+               
+        #print(folder_id)
+               
+        file_metadata = {
+            'name': 'photo.jpg',
+            'parents': [folder_id]
+        }
+        
+        
+        file_metadata = {'name': 'photo.jpg',
+                         'parents': [folder_id]}
+        
+        media = MediaFileUpload('../picture/photo.jpg',
+                                mimetype='image/jpeg')
+        
+        file = service.files().create(body=file_metadata,
+                                            media_body=media,
+                                            fields='id').execute()
+        
+        print('File ID: %s' % file.get('id'))
+        
+    
+if __name__ == '__main__':
+    main()
