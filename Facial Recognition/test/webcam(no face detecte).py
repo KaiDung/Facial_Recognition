@@ -311,7 +311,7 @@ class GUI_window(QtWidgets.QMainWindow):
         if rat == True:
             frame = cv2.flip(frame,2)
             t1=cv2.getTickCount()
-            img,scaled_arr,face_x_y = cv2_face(frame,auto_detect_check)
+            img,scaled_arr,facexy = cv2_face(frame,auto_detect_check)
             if scaled_arr is not None:
             
                 feed_dict = { images_placeholder: scaled_arr, phase_train_placeholder:False ,keep_probability_placeholder:1.0}
@@ -324,23 +324,23 @@ class GUI_window(QtWidgets.QMainWindow):
                 min_diff=min(diff)
                 if min_diff<THRED:
                     index=np.argmin(diff)
-                    face_class[0]=class_arr[index]   
+                    face_class[0]=class_arr[index]
                 t2=cv2.getTickCount()
                 t=(t2-t1)/cv2.getTickFrequency()
                 
-                #寫名字
-                if  auto_detect_check == True:
-                    for (x,y,w,h) in face_x_y:
+                if auto_detect_check==True:
+                    for (x,y,w,h) in facexy: 
                         cv2.putText(img, '{}'.format(face_class[0]), 
-                                (x, y), 
+                                (x,y), 
                                 cv2.FONT_HERSHEY_SIMPLEX,
                                 1,(0, 0, 255), 2)
                         break
-                else:
+                else: 
                     cv2.putText(img, '{}'.format(face_class[0]), 
-                                (left_w, left_h), 
-                                cv2.FONT_HERSHEY_SIMPLEX,
-                                1,(0, 0, 255), 2)
+                            (left_w,left_h), 
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            1,(0, 0, 255), 2)
+                    
                 
                 ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
                 
@@ -379,15 +379,18 @@ class GUI_window(QtWidgets.QMainWindow):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
         
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
         #圖片隨視窗改變
         #cv2.resize(frame,(x,y))
         frame = cv2.resize(frame,(int((self.ui.label.height()-14)/3)*4,(int((self.ui.label.height()-14)/3)*3)))
         #呈現圖片
+
         showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
         if self.ui.tabWidget.currentIndex() != 2:
             self.ui.label.setPixmap(QtGui.QPixmap.fromImage(showImage))
         else:
             self.ui.label_2.setPixmap(QtGui.QPixmap.fromImage(showImage))
+        
     def open_detect(self):
         if self.check == 0:
             #self.cap=cv2.VideoCapture(0+cv2.CAP_DSHOW)
@@ -448,7 +451,7 @@ def cv2_face(image,a_d_c):
         for (x,y,w,h) in faces:
             cv2.rectangle(image,(x,y),(x+w,y+h),(0,255,0),2)
             #roi_gray = gray[y:y+h, x:x+w]
-            roi_color = image[y:y+h, x:x+w]
+            #roi_color = image[y:y+h, x:x+w]
             break
         face = gray[left_h:left_h+face_scale,left_w:left_w+face_scale]
         for (x,y,w,h) in faces:
