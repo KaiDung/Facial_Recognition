@@ -38,8 +38,9 @@ def Case_Detect(case):
             for item in items:
                 print(u'{0} ({1})'.format(item['name'], item['id']))
     if case== '2' :
+        name = input("輸入資料夾名稱:\n")
         file_metadata = {
-            'name': 'Invoices',
+            'name': name,
             'mimeType': 'application/vnd.google-apps.folder'
         }
         file =service.files().create(body=file_metadata,
