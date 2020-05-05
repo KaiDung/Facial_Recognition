@@ -28,6 +28,7 @@ left_w = 200
 left_h = 160
 face_scale = 228
 in_or_out = 0
+auto_detect_check = 0
 #include target face
 '''
 if os.path.exists('../pictures/embedding.h5'):
@@ -72,6 +73,17 @@ class GUI_window(QtWidgets.QMainWindow):
         #由資料庫抓取資料
         self.ui.reload_image.clicked.connect(self.reload)
         
+        self.ui.auto_detect.clicked.connect(self.auto_detect_event)
+        self.auto_detect.setStyleSheet("QPushButton{background:black;border-radius:12;}"
+            )
+        self.widget.setStyleSheet("QWidget{border-width:2px;}"
+                                  "QWidget{border-color:black;}"
+                                  "QWidget{border-style:outset;}"
+                                  "QWidget{height:100;}"
+                                  "QWidget{border-radius:5px;}"
+                                  "QWidget{background-color:qlineargradient(x1 : 0, y1 : 0, x2 : 0, y2 : 1, stop :  0.0 #f5f9ff,stop :   0.5 #c7dfff,stop :   0.55 #afd2ff,stop :   1.0 #c0dbff);}")
+        #self.label3 = QLabel(self)
+        #self.label3.setGeometry(1, 49, 281, 54)
         self.ui.close_button.clicked.connect(self.close_camera)
         self.ui.tabWidget.setTabIcon(0,QtGui.QIcon("home.png"))
         self.ui.tabWidget.setIconSize(QtCore.QSize(30,30))
@@ -85,9 +97,14 @@ class GUI_window(QtWidgets.QMainWindow):
         self.tabWidget.setTabShape(tab_shape)
         self.check = 0
         self.i = 0
-        
+        auto_detect_check = 0
+        self.label2 = QLabel(self)
+        #self.label2.setGeometry(self.label.width()+20,150,45,45)
+        #self.label2.setStyleSheet("QLabel{background:black;}"
+                   #"QLabel{color:rgb(300,300,300,120);font-size:30px;font-weight:bold;font-family:宋体;}"
+                   #"QLabel{border-radius: 22;}"
+                   #)
         self.label1 = QLabel(self)
-        
         #self.label1.move(200, 60)
         #$self.label1.AlignCenter()
         #self.label1.setAlignment(QtCore.Qt.AlignCenter)
@@ -99,6 +116,7 @@ class GUI_window(QtWidgets.QMainWindow):
         timer.timeout.connect(self.showtime)
         timer.start()
         self.label1.setAlignment(QtCore.Qt.AlignCenter)
+        self.label2.setGeometry(self.label.width()+20,150,45,45)
         #self.label1.resize(self.width(),50)
         self.show()
     def search_event(self):
@@ -133,12 +151,30 @@ class GUI_window(QtWidgets.QMainWindow):
         # Data = {
                 #"user_name" : search_object
             #}
-        
+    def auto_detect_event(self):
+        global auto_detect_check
+        if auto_detect_check == 0:
+            self.widget.raise_()
+            self.auto_detect.raise_()
+            self.anim = QPropertyAnimation(self.auto_detect, b"geometry")
+            self.anim.setDuration(400)
+            self.anim.setStartValue(QRect(11,11,25,25))
+            self.anim.setEndValue(QRect(245,11,25,25))
+            self.anim.start()
+            auto_detect_check = 1
+        else:
+            self.anim = QPropertyAnimation(self.auto_detect, b"geometry")
+            self.anim.setDuration(400)
+            self.anim.setStartValue(QRect(245,11,25,25))
+            self.anim.setEndValue(QRect(11,11,25,25))
+            self.anim.start()
+            auto_detect_check = 0
     def showtime(self):
         ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
         #datetime = QDateTime.currentDateTime()
         #text = datetime.toString(Qt.ISODate)
         self.label1.setGeometry(0, 50, self.width(),50)
+        self.label2.setGeometry(self.label.width()+20,150,45,45)
         self.label1.setText(ntime)
     
     def keyPressEvent(self,event):
@@ -266,7 +302,10 @@ class GUI_window(QtWidgets.QMainWindow):
         global emb_arr,class_arr
         global in_or_out
         #偵測是否勾選自動偵測
-        auto_detect_check = self.ui.auto_detect_check.isChecked()
+        #auto_detect_check = self.ui.auto_detect_check.isChecked()
+        #print(auto_detect_check)
+        #if auto_detect_check == 1:
+            #print("shit")
         rat,frame = self.cap.read()
         
         if rat == True:
@@ -457,13 +496,20 @@ stylesheet = '''
         }
         QPushButton {
             qproperty-alignment: AlignCenter;
-            background-color: red;
+            background-color: qlineargradient(x1 : 0, y1 : 0, 
+                                              x2 : 0, y2 : 1, 
+                                             stop :  0.0 #f5f9ff,
+                                             stop :   0.5 #c7dfff,
+                                             stop :   0.55 #afd2ff,
+                                             stop :   1.0 #c0dbff);
             border-style: outset;
             border-width: 2px;
             border-radius: 10px;
             width: 280px;
             font-size: 50px;
             font: bold;
+            color: #006aff;
+            font: bold large "Arial";
             height: 50px;
             border-color: beige;
         }
@@ -476,6 +522,15 @@ stylesheet = '''
             min-width: 280px;
             min-height: 50px;
         }
+        QCheckBox::indicator{
+            border-style: outset;
+            border-width: 2px;
+            border-radius: 20px;
+            border-color: black;
+            width: 277;
+            height: 50;
+        }
+       
 '''
 # In[4]:Run program        
 if __name__ == "__main__":
