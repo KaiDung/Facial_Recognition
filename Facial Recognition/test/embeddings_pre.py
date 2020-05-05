@@ -81,7 +81,6 @@ def cv2_face():
                 }
                 conn = requests.post("http://140.136.150.100/upload.php", data = Data)
                 #----------------------------------------------------------------------------
-                
                 # calculate embeddings
                 
                 #embs.append(sess.run(embeddings, feed_dict=feed_dict))

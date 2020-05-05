@@ -43,6 +43,8 @@ else:
 '''
 cascPath = 'haarcascade_frontalface_default.xml'
 faceCascade = cv2.CascadeClassifier(cascPath)
+lower_blue = np.array([100,43,46])
+upper_blue = np.array([124,255,255])
 # In[2]:Load Qt UI & setting function
 class GUI_window(QtWidgets.QMainWindow):
     def __init__(self,parent=None):
@@ -279,7 +281,7 @@ class GUI_window(QtWidgets.QMainWindow):
                 diff = []
                 
                 for emb in emb_arr:
-                    diff.append(np.mean(np.square(embs[0] -emb)))
+                    diff.append(np.mean(np.square(embs[0] - emb)))
                 min_diff=min(diff)
                 if min_diff<THRED:
                     index=np.argmin(diff)
@@ -339,6 +341,7 @@ class GUI_window(QtWidgets.QMainWindow):
         
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         #圖片隨視窗改變
+        #cv2.resize(frame,(x,y))
         frame = cv2.resize(frame,(int((self.ui.label.height()-14)/3)*4,(int((self.ui.label.height()-14)/3)*3)))
         #呈現圖片
         showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
@@ -416,7 +419,8 @@ def cv2_face(image,a_d_c):
     else:
         cv2.rectangle(image,(left_w,left_h),(left_w+face_scale,left_h+face_scale),(0,255,0),2)
         face = gray[left_h:left_h+face_scale,left_w:left_w+face_scale]
-   # for (x,y,w,h) in faces:
+   
+    # for (x,y,w,h) in faces:
        # if x+y+w+h!=0:
            # face = gray[y:y+h,x:x+w]
     scaled =cv2.resize(face,(160,160),interpolation=cv2.INTER_LINEAR)
