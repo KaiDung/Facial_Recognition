@@ -12,7 +12,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
 # If modifying these scopes, delete the file token.pickle.
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
+SCOPES = ['https://www.googleapis.com/auth/drive']
 
 def main():
     """Shows basic usage of the Drive v3 API.
