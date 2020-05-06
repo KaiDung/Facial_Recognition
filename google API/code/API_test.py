@@ -38,8 +38,9 @@ def Case_Detect(case):
             for item in items:
                 print(u'{0} ({1})'.format(item['name'], item['id']))
     if case== '2' :
+        name = input("輸入資料夾名稱:\n")
         file_metadata = {
-            'name': '臉部辨識',
+            'name': name,
             'mimeType': 'application/vnd.google-apps.folder'
         }
         file =service.files().create(body=file_metadata,
@@ -54,7 +55,7 @@ def Case_Detect(case):
         
         folder_id = None
         for item in items:
-            if item['name'] == "臉部辨識":
+            if item['name'] == "Invoices":
                 folder_id = item['id']
                
         #print(folder_id)
