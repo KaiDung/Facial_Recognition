@@ -55,30 +55,35 @@ def Case_Detect(case):
         
         name = input("目的地資料夾名稱:\n")
         
+        
+        
         folder_id = None
         for item in items:
             if item['name'] == name :
                 folder_id = item['id']
-               
+                
+        if folder_id == None:
+            print("無效資料夾名稱")
+            return 0 
+        
         #print(folder_id)
-               
-        file_metadata = {
-            'name': 'photo.jpg',
-            'parents': [folder_id]
-        }
+            
+        path = os.listdir('../picture')
+        #print(path)
         
-        
-        file_metadata = {'name': 'photo.jpg',
-                         'parents': [folder_id]}
-        
-        media = MediaFileUpload('../picture/photo.jpg',
-                                mimetype='image/jpeg')
-        
-        file = service.files().create(body=file_metadata,
-                                            media_body=media,
-                                            fields='id').execute()
-        
-        print('File ID: %s' % file.get('id'))
+        for name in path:
+            
+            file_metadata = {'name': name,
+                             'parents': [folder_id]}
+            
+            media = MediaFileUpload('../picture/'+ name,
+                                    mimetype='image/jpeg')
+            
+            file = service.files().create(body=file_metadata,
+                                                media_body=media,
+                                                fields='id').execute()
+            
+            print('File ID: %s' % file.get('id'))
         
     
 if __name__ == '__main__':
