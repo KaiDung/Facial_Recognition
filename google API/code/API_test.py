@@ -53,9 +53,11 @@ def Case_Detect(case):
         
         items = results.get('files', [])
         
+        name = input("目的地資料夾名稱:\n")
+        
         folder_id = None
         for item in items:
-            if item['name'] == "Invoices":
+            if item['name'] == name :
                 folder_id = item['id']
                
         #print(folder_id)
