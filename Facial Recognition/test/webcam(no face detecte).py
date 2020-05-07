@@ -20,6 +20,8 @@ import os
 import time
 import sys
 import requests
+import Drive_API
+from Drive_API import Drive_upload
 #import matplotlib.pyplot as plt
 # In[1]:Load target features
 #open camera
@@ -215,11 +217,20 @@ class GUI_window(QtWidgets.QMainWindow):
         #face = frame[left_h:left_h+face_scale,left_w:left_w+face_scale]            
         if var!='':
             face = cv2.resize(face, (160, 160), interpolation=cv2.INTER_CUBIC )
-            save_image = QtWidgets.QFileDialog.getExistingDirectory(self,"choose direction","../pictures")
-            print(save_image)
-            c_path=os.path.join(save_image,var+'.jpg')
-            cv2.imwrite(c_path,face)
-            cv2.waitKey(100)
+            #save_image = QtWidgets.QFileDialog.getExistingDirectory(self,"choose direction","../pictures")
+            #print(save_image)
+            
+            #c_path=os.path.join(save_image,var+'.jpg')
+            #cv2.imwrite(c_path,face)
+            pic_path = "../new_pictures/"+var+".jpg"
+            
+            cv2.imwrite(pic_path,face)
+            #cv2.waitKey(100)
+            
+            #---------------照片上傳雲端---------------------
+            Drive_upload(pic_path,var)
+            
+            #-----------------------------------------------
             frame = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
             showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
             self.ui.label_2.setPixmap(QtGui.QPixmap.fromImage(showImage))
@@ -227,14 +238,18 @@ class GUI_window(QtWidgets.QMainWindow):
             class_arr = []
             emb_arr = []
             
-            embeddings_pre.main() #重新執行特徵分析並上傳資料庫
-            
+            #-----------重新執行特徵分析並上傳資料庫----------
+            #embeddings_pre.main() 
+            #----------------------------------------------
             self.reload()
             
             #f=h5py.File('../pictures/embedding.h5','r')
             #class_arr=f['class_name'][:]
             #class_arr=[k.decode() for k in class_arr]
             #emb_arr=f['embeddings'][:]
+            
+            if os.path.exists(pic_path):
+                os.remove(pic_path)
             
             print('save complete')
             var = self.ui.lineEdit.setText('')
