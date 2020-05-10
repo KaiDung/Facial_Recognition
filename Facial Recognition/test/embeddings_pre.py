@@ -39,10 +39,11 @@ def main():
 
 def cv2_face():
    
-    path = '../pictures'
+    path = '../new_pictures/'
     
     class_names_arr=[]
     files1 = os.listdir(path)
+    #print(files1)
     embs = []
 
     with tf.Session() as sess:
@@ -51,39 +52,38 @@ def cv2_face():
         embeddings = tf.get_default_graph().get_tensor_by_name("Mul:0")
         phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
         keep_probability_placeholder= tf.get_default_graph().get_tensor_by_name('keep_probability:0')
+        
         for step in files1:
-            #之後就會刪除h5檔 這個if也可以砍掉
-            if step == "embedding.h5":
-                continue
+            #print(step)
+            split = os.path.splitext(step)
+            pic_name = split[0]
+            #print("pic_name = ",pic_name)
             
-            l_image = os.path.join(path,step)
+            scaled_arr=[]
+            img = cv2.imread(path + step)
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            scaled =cv2.resize(gray,(160,160),interpolation=cv2.INTER_LINEAR)
+            scaled.astype(float)
+            scaled = np.array(scaled).reshape(160, 160, 1)
+            scaled = prewhiten(scaled)
+            #check shape
+            #print(scaled.shape)
+            scaled_arr.append(scaled)
+            class_names_arr.append(step)
             
-            al_image = os.listdir(l_image)
-            for i in al_image:
-                scaled_arr=[]
-                img = cv2.imread(os.path.join(l_image,i))
-                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                scaled =cv2.resize(gray,(160,160),interpolation=cv2.INTER_LINEAR)
-                scaled.astype(float)
-                scaled = np.array(scaled).reshape(160, 160, 1)
-                scaled = prewhiten(scaled)
-                #check shape
-                #print(scaled.shape)
-                scaled_arr.append(scaled)
-                class_names_arr.append(step)
-                
-                feed_dict = { images_placeholder: scaled_arr, phase_train_placeholder:False ,keep_probability_placeholder:1.0}
-                #---------------------------------上傳資料庫---------------------------------
-                x = sess.run(embeddings, feed_dict=feed_dict)
-                Data = {
-                    "user_name" : step,
-                    "embedding" : str(x)
-                }
-                conn = requests.post("http://140.136.150.100/upload.php", data = Data)
-                #----------------------------------------------------------------------------
-                # calculate embeddings
-                
-                #embs.append(sess.run(embeddings, feed_dict=feed_dict))
+            feed_dict = { images_placeholder: scaled_arr, phase_train_placeholder:False ,keep_probability_placeholder:1.0}
+            #---------------------------------上傳資料庫---------------------------------
+            x = sess.run(embeddings, feed_dict=feed_dict)
+            Data = {
+                "user_name" : pic_name,
+                "embedding" : str(x)
+            }
+            conn = requests.post("http://140.136.150.100/upload.php", data = Data)
+            #----------------------------------------------------------------------------
+            # calculate embeddings
+            #embs.append(sess.run(embeddings, feed_dict=feed_dict))
+            print("特徵上傳完畢")
+            
     #return embs,class_names_arr
 # In[]
 def prewhiten(x):

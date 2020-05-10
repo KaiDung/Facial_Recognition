@@ -56,7 +56,7 @@ def Drive_upload(path,name):
                                   fields='id').execute()
         
     #print('File ID: %s' % file.get('id'))
-    print("上傳雲端完成")
+    print("圖片上傳雲端完成")
 
 # In[]
 def Drive_create_folder(folder_name):

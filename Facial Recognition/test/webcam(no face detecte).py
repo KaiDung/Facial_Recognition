@@ -239,7 +239,7 @@ class GUI_window(QtWidgets.QMainWindow):
             emb_arr = []
             
             #-----------重新執行特徵分析並上傳資料庫----------
-            #embeddings_pre.main() 
+            embeddings_pre.main() 
             #----------------------------------------------
             self.reload()
             
@@ -248,8 +248,9 @@ class GUI_window(QtWidgets.QMainWindow):
             #class_arr=[k.decode() for k in class_arr]
             #emb_arr=f['embeddings'][:]
             
-            if os.path.exists(pic_path):
-                os.remove(pic_path)
+            #用完就刪除照片
+            #if os.path.exists(pic_path):
+            #    os.remove(pic_path)
             
             print('save complete')
             var = self.ui.lineEdit.setText('')
