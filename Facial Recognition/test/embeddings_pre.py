@@ -13,6 +13,7 @@ import cv2
 import h5py
 import matplotlib.pyplot as plt
 import requests
+import time
 
 # In[2]:
 
@@ -46,6 +47,8 @@ def cv2_face():
     #print(files1)
     embs = []
 
+    ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
+
     with tf.Session() as sess:
         load_model('../model/')
         images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
@@ -76,13 +79,14 @@ def cv2_face():
             x = sess.run(embeddings, feed_dict=feed_dict)
             Data = {
                 "user_name" : pic_name,
-                "embedding" : str(x)
+                "embedding" : str(x),
+                "date"      : str(ntime)
             }
             conn = requests.post("http://140.136.150.100/upload.php", data = Data)
             #----------------------------------------------------------------------------
             # calculate embeddings
             #embs.append(sess.run(embeddings, feed_dict=feed_dict))
-            print("特徵上傳完畢")
+            print(conn.text)
             
     #return embs,class_names_arr
 # In[]

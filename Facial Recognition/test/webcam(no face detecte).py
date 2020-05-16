@@ -249,10 +249,10 @@ class GUI_window(QtWidgets.QMainWindow):
             #emb_arr=f['embeddings'][:]
             
             #用完就刪除照片
-            #if os.path.exists(pic_path):
-            #    os.remove(pic_path)
+            if os.path.exists(pic_path):
+                os.remove(pic_path)
             
-            print('save complete')
+            print('-----Save完成-----')
             var = self.ui.lineEdit.setText('')
     '''
     def reload_paremeter(self):
@@ -312,7 +312,7 @@ class GUI_window(QtWidgets.QMainWindow):
                 hold=""
         class_arr = np.array(arr1)
         emb_arr = np.array(arr2)
-        print("Reload完成")
+        print("-----Reload完成----")
         
     def show_image(self):
         global emb_arr,class_arr
