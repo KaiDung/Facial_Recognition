@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Jun  6 18:30:41 2020
+Created on Sat Jun  6 19:27:57 2020
 
 @author: allen
 """
@@ -10,11 +10,13 @@ x = 200
 y = 160
 length = 228
 
+global OK
+OK = 0
 def main():
     cap = cv2.VideoCapture(0)
     
     while(1):
-        
+        global OK
         ret,frame = cap.read()
         frame = cv2.flip(frame,2)
         face = frame[y:y+length,x:x+length]
@@ -24,21 +26,23 @@ def main():
         half = face[int(size[1]/2):size[1],0:size[0]]
         size = half.shape
         
-        #image[y][x][BGR]
-        # 注意 順序是BGR
-        pixel=0
+        #轉灰階
+        gray = cv2.cvtColor(half, cv2.COLOR_BGR2GRAY)
+        #二值化
+        ret,thresh = cv2.threshold(gray,127,255,cv2.THRESH_BINARY)
         
-        total = 0    
-        # y = 0~114
-        for i in range(0,size[0]):
-            # x = 0~228
-            for j in range(0,size[1]):
-                #偵測藍色範圍
-                if half[i][j][0] >= 160 and half[i][j][0] <= 230:
+        cv2.imshow("Binary",thresh)
+        
+        pixel = 0
+        #計算白色面積
+        # x = 0~228
+        for i in range(0,thresh.shape[0]):
+            # y = 0~114
+            for j in range(0,thresh.shape[1]):
+                if thresh[i][j] == 255:
                     pixel += 1
-                total += 1
-                
-        if pixel > total * 0.65:
+        
+        if pixel >= size[0]*size[1]*0.7:
             cv2.rectangle(frame,(x,y),(x+length,y+length),(0,255,0),2)
             cv2.imshow("frame",frame)
             print("有戴口罩")
@@ -46,7 +50,6 @@ def main():
             cv2.rectangle(frame,(x,y),(x+length,y+length),(0,0,255),2)
             cv2.imshow("frame",frame)
             print("沒戴口罩")
-        
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         
