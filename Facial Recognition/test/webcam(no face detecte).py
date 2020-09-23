@@ -235,8 +235,8 @@ class GUI_window(QtWidgets.QMainWindow):
             showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
             self.ui.label_2.setPixmap(QtGui.QPixmap.fromImage(showImage))
             #f.close()
-            class_arr = []
-            emb_arr = []
+            #class_arr = []
+            #emb_arr = []
             
             #-----------重新執行特徵分析並上傳資料庫----------
             embeddings_pre.main() 
@@ -268,48 +268,30 @@ class GUI_window(QtWidgets.QMainWindow):
         print('built complete')
     '''
     
-    
     def reload(self):
         global class_arr,emb_arr
         r = requests.get("http://140.136.150.100/download.php")
-
+        
         hold =""
         stop=0
         arr1 = []
         arr2 = []
-        
         for char in r.text:
             hold += char
             if char == '{' or char == '}':
                 stop+=1
             if stop == 2:
                 data = eval(hold)
-                arr1.append(data['user_name'])
+                #print(data["user_name"])
+                arr1.append(data["user_name"])
+                #print(data['embedding'][2:-2])
+                temp = []
+                for e in data['embedding'][2:-2].split():
+                    temp.append(float(e))
+                arr2.append(temp)
+                stop = 0
+                hold = ""
                 
-                flag =0
-                hold2=""
-                arr4=[]
-                for ch in data['embedding']:
-            
-                    if ch =='[' or ch==']' or ch==' ':
-                        temp = ch
-                    else:
-                        hold2+=ch
-                      
-                    try:
-                        if ch==' ' or ch==']':
-                            if flag ==0 :
-                                arr4.append(np.float32(hold2)) 
-                                flag=1
-                                hold2 = ""
-                    except:
-                        continue
-                    if ch!=' ' and flag ==1:
-                        flag=0
-                        
-                arr2.append(arr4)
-                stop=0
-                hold=""
         class_arr = np.array(arr1)
         emb_arr = np.array(arr2)
         print("-----Reload完成----")
@@ -323,7 +305,6 @@ class GUI_window(QtWidgets.QMainWindow):
         #if auto_detect_check == 1:
             #print("shit")
         rat,frame = self.cap.read()
-        
         if rat == True:
             frame = cv2.flip(frame,2)
             t1=cv2.getTickCount()
@@ -412,8 +393,8 @@ class GUI_window(QtWidgets.QMainWindow):
             #self.cap=cv2.VideoCapture(0+cv2.CAP_DSHOW)
             self.cap=cv2.VideoCapture(0)
             self.timer_camera = QtCore.QTimer()
-            self.timer_camera.start(150)
-            self.timer_camera.timeout.connect(self.show_image)
+            self.timer_camera.start(50)#啟動 Timer .. 每隔50ms 會觸發 show)image
+            self.timer_camera.timeout.connect(self.show_image)#當時間到時會執行 show)image
             self.check = 1
     def close_camera(self):
         if self.check == 1:
@@ -428,8 +409,8 @@ class GUI_window(QtWidgets.QMainWindow):
                     #self.cap=cv2.VideoCapture(0+cv2.CAP_DSHOW)
                     self.cap=cv2.VideoCapture(0)
                     self.timer_camera = QtCore.QTimer()
-                    self.timer_camera.start(150)
-                    self.timer_camera.timeout.connect(self.show_image)
+                    self.timer_camera.start(150) 
+                    self.timer_camera.timeout.connect(self.show_image) 
                     print("camera open")
                     self.check = 1
             self.i = 0 
@@ -481,6 +462,7 @@ def cv2_face(image,a_d_c):
     # for (x,y,w,h) in faces:
        # if x+y+w+h!=0:
            # face = gray[y:y+h,x:x+w]
+    #cv2.imshow("face",face)
     scaled =cv2.resize(face,(160,160),interpolation=cv2.INTER_LINEAR)
     scaled.astype(float)
     scaled = np.array(scaled).reshape(160, 160, 1)

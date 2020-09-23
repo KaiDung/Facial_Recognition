@@ -1,0 +1,5 @@
+classes= 3
+train  = ./yolo_training/train.txt
+valid  = ./yolo_training/test.txt
+names  = ./yolo_training/cfg/obj.names
+backup = ./yolo_training/cfg/weights

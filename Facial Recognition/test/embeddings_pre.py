@@ -57,6 +57,8 @@ def cv2_face():
         keep_probability_placeholder= tf.get_default_graph().get_tensor_by_name('keep_probability:0')
         
         for step in files1:
+            if step == "1.txt":
+                continue
             #print(step)
             split = os.path.splitext(step)
             pic_name = split[0]
