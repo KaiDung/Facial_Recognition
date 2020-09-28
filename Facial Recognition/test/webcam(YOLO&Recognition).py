@@ -19,6 +19,7 @@ import h5py
 import os
 import time
 import sys
+#路徑記得改
 sys.path.append(r'C:\Users\allen\Desktop\Git_Data\Facial Recognition\test\darknet-master\build\darknet\x64')
 import requests
 import Drive_API
@@ -37,25 +38,6 @@ THRED=0.85
 left_w = 200
 left_h = 160
 face_scale = 228
-in_or_out = 0
-auto_detect_check = 0
-#include target face
-'''
-if os.path.exists('../pictures/embedding.h5'):
-    f=h5py.File('../pictures/embedding.h5','r')
-    class_arr=f['class_name'][:]
-    #print("class = ",class_arr)
-    class_arr=[k.decode() for k in class_arr]
-    emb_arr=f['embeddings'][:]
-else:
-    class_arr = []
-    emb_arr = []
-#print(emb_arr.type)
-'''
-cascPath = 'haarcascade_frontalface_default.xml'
-faceCascade = cv2.CascadeClassifier(cascPath)
-lower_blue = np.array([100,43,46])
-upper_blue = np.array([124,255,255])
 
 # In[]
 #-----------------------口罩辨識初始化definiton--------------------------------
@@ -106,7 +88,7 @@ class GUI_window(QtWidgets.QMainWindow):
         self.reload()
         
         QtWidgets.QMainWindow.__init__(self)
-        #self.setWindowTitle('ggez')
+        #self.setWindowTitle("ggez")
         self.ui = uic.loadUi("webcam.ui",self)
         #self.ui.setFixedSize(self.size())
         self.ui.tabWidget.setTabText(0,"Main")
@@ -120,22 +102,22 @@ class GUI_window(QtWidgets.QMainWindow):
         
         self.ui.Send_Button.clicked.connect(self.search_event)
         self.ui.lineEdit_2.returnPressed.connect(self.search_event)
-        #由h5抓特徵資料
-        #self.ui.reload_image.clicked.connect(self.reload_paremeter)
+
         #由資料庫抓取資料
         self.ui.reload_image.clicked.connect(self.reload)
         
-        self.ui.auto_detect.clicked.connect(self.auto_detect_event)
-        self.auto_detect.setStyleSheet("QPushButton{background:black;border-radius:12;}"
+        self.ui.Recognition_checkbox.clicked.connect(self.Recognition_check_event)
+        
+        self.Recognition_checkbox.setStyleSheet("QPushButton{background:black;border-radius:12;}"
             )
+        
         self.widget.setStyleSheet("QWidget{border-width:2px;}"
                                   "QWidget{border-color:black;}"
                                   "QWidget{border-style:outset;}"
                                   "QWidget{height:100;}"
                                   "QWidget{border-radius:5px;}"
                                   "QWidget{background-color:qlineargradient(x1 : 0, y1 : 0, x2 : 0, y2 : 1, stop :  0.0 #f5f9ff,stop :   0.5 #c7dfff,stop :   0.55 #afd2ff,stop :   1.0 #c0dbff);}")
-        #self.label3 = QLabel(self)
-        #self.label3.setGeometry(1, 49, 281, 54)
+
         self.ui.close_button.clicked.connect(self.close_camera)
         self.ui.tabWidget.setTabIcon(0,QtGui.QIcon("home.png"))
         self.ui.tabWidget.setIconSize(QtCore.QSize(30,30))
@@ -144,33 +126,29 @@ class GUI_window(QtWidgets.QMainWindow):
         self.ui.tabWidget.setTabIcon(2,QtGui.QIcon("setting.png"))
         self.ui.tabWidget.setIconSize(QtCore.QSize(30,30))
         self.setWindowIcon(QtGui.QIcon("window_icon.png"))
-        #QTabWidget>QWidget>QWidget{background: gray;}
+
         tab_shape = QtWidgets.QTabWidget.Triangular
         self.tabWidget.setTabShape(tab_shape)
         self.check = 0
         self.i = 0
-        auto_detect_check = 0
+        self.in_or_out = 0
+        
+        self.Recognition_check = False
         self.label2 = QLabel(self)
-        #self.label2.setGeometry(self.label.width()+20,150,45,45)
-        #self.label2.setStyleSheet("QLabel{background:black;}"
-                   #"QLabel{color:rgb(300,300,300,120);font-size:30px;font-weight:bold;font-family:宋体;}"
-                   #"QLabel{border-radius: 22;}"
-                   #)
+
         self.label1 = QLabel(self)
-        #self.label1.move(200, 60)
-        #$self.label1.AlignCenter()
-        #self.label1.setAlignment(QtCore.Qt.AlignCenter)
+
         self.label1.setStyleSheet("QLabel{background:0;}"
                    "QLabel{color:rgb(300,300,300,120);font-size:30px;font-weight:bold;font-family:宋体;}"
                    )
-    # 动态显示时间在label上
+        # 動態顯示時間在label上
         timer = QTimer(self)
         timer.timeout.connect(self.showtime)
         timer.start()
         self.label1.setAlignment(QtCore.Qt.AlignCenter)
         self.label2.setGeometry(self.label.width()+20,150,45,45)
         #self.label1.resize(self.width(),50)
-        self.show()
+        
         
         # In[]
         #----------------口罩辨識初始化-----------------
@@ -182,14 +160,9 @@ class GUI_window(QtWidgets.QMainWindow):
         self.YOLO_image_queue = Queue(maxsize=1)
         #宣告一個放人臉的Queue
         self.YOLO_face_queue = Queue(maxsize=1)
-        #宣告一個暫放人臉的變數
-        self.face = 0
-        #宣告一個放人名的座標點
-        self.d_top = 0
-        self.d_left = 0
-        self.d_bottom = 0
-        self.d_right = 0
-        
+
+        self.FPS = 0
+
         self.args =parser()
         
         check_arguments_errors(self.args)
@@ -206,9 +179,7 @@ class GUI_window(QtWidgets.QMainWindow):
         self.d_height = darknet.network_height(self.network)
         self.darknet_image = darknet.make_image(self.d_width, self.d_height, 3)
         
-        #input_path = str2int(args.input)
-        #cap = cv2.VideoCapture(0)
-        
+        self.show()
     # In[]
     def video_capture(self):
         while self.cap.isOpened():
@@ -252,32 +223,74 @@ class GUI_window(QtWidgets.QMainWindow):
                 #畫框 + 畫標籤
                 image = darknet.draw_boxes(detections, frame_resized, self.class_colors)
                 
-                #預設剪中間背景當人臉
-                face = image[left_h:left_h+face_scale,left_w:left_w+face_scale]
-                #如果有人臉座標就取代預設背景
+                if self.Recognition_check == True:
+                    if detections:
+                        for label, confidence, bbox in detections:
+                            
+                            left,top,right,bottom = darknet.bbox2points(bbox)
+                        
+                            face = image[top:bottom,left:right]
+                            
+                            #進行人臉辨識
+                            t1=cv2.getTickCount()
+                            
+                            scaled_arr = None
+                            try:
+                                scaled_arr = cv2_face(face)
+                            except:
+                                scaled_arr = None
+                                
+                            if scaled_arr is not None:
+                                feed_dict = { images_placeholder: scaled_arr, phase_train_placeholder:False ,keep_probability_placeholder:1.0}
+                                embs = sess.run(embeddings, feed_dict=feed_dict) 
+                                face_class=['Others']
+                                diff = []
+                                
+                                for emb in emb_arr:
+                                    diff.append(np.mean(np.square(embs[0] - emb)))
+                                min_diff=min(diff)
+                                if min_diff<THRED:
+                                    index=np.argmin(diff)
+                                    face_class[0]=class_arr[index]
+                                t2=cv2.getTickCount()
+                                t=(t2-t1)/cv2.getTickFrequency()
+                                
+                                #把人名印在圖片上
+                                cv2.putText(image, '{}'.format(face_class[0]), 
+                                        (left,top - 25), 
+                                        cv2.FONT_HERSHEY_SIMPLEX,
+                                        1,(0, 0, 255), 2)
+                                
+                                ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
+                                
+                                if self.in_or_out == 1 and face_class[0]=='Others':
+                                    self.in_or_out = 0
+                                
+                                if self.in_or_out == 0 and face_class[0]!='Others':
+                                    record_data = {
+                                          "user_name" : face_class[0],
+                                          "time" : ntime      
+                                    }
+                                    conn = requests.post("http://140.136.150.100/record.php",data = record_data)
+                                    #print(face_class[0],ntime)
+                                    #print(conn.text)
+                                    self.in_or_out = 1
+                                
+                                #印上辨識時間 & 誤差
+                                cv2.putText(image, '{:.4f}'.format(t), (10, 30),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
+                    
+                                cv2.putText(image, '{:.4f}'.format(min_diff), (100, 30),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
+                        
                 
-                if detections:
-                    for label, confidence, bbox in detections:
-                        
-                        left,top,right,bottom = darknet.bbox2points(bbox)
-                    
-                        face = image[top:bottom,left:right]
-                        
-                        self.d_left = left
-                        self.d_top = top
-                        self.d_right = right
-                        self.d_bottom = bottom
-                    
                 self.YOLO_image_queue.put(image) #把RGB圖片存起來
-                self.YOLO_face_queue.put(face) #把RGB人臉存起來
-                #face = cv2.cvtColor(face,cv2.COLOR_BGR2RGB)
-                #cv2.imshow("face",face)
                 
                 if cv2.waitKey(fps) == 27:
                     break
+                
         self.cap.release()
         print("Thread 3 stop")
-        #video.release()
         cv2.destroyAllWindows()
     # In[]
     def search_event(self):
@@ -312,24 +325,26 @@ class GUI_window(QtWidgets.QMainWindow):
         # Data = {
                 #"user_name" : search_object
             #}
-    def auto_detect_event(self):
-        global auto_detect_check
-        if auto_detect_check == 0:
+    
+    def Recognition_check_event(self):
+        
+        if self.Recognition_check == False:
             self.widget.raise_()
-            self.auto_detect.raise_()
-            self.anim = QPropertyAnimation(self.auto_detect, b"geometry")
+            self.Recognition_checkbox.raise_()
+            self.anim = QPropertyAnimation(self.Recognition_checkbox, b"geometry")
             self.anim.setDuration(400)
             self.anim.setStartValue(QRect(11,11,25,25))
             self.anim.setEndValue(QRect(245,11,25,25))
             self.anim.start()
-            auto_detect_check = 1
+            self.Recognition_check = not self.Recognition_check
         else:
-            self.anim = QPropertyAnimation(self.auto_detect, b"geometry")
+            self.anim = QPropertyAnimation(self.Recognition_checkbox, b"geometry")
             self.anim.setDuration(400)
             self.anim.setStartValue(QRect(245,11,25,25))
             self.anim.setEndValue(QRect(11,11,25,25))
             self.anim.start()
-            auto_detect_check = 0
+            self.Recognition_check = not self.Recognition_check
+    
     def showtime(self):
         ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
         #datetime = QDateTime.currentDateTime()
@@ -349,6 +364,7 @@ class GUI_window(QtWidgets.QMainWindow):
         if event.key() == 81:# 81 是 q按鍵的事件編碼
             print("Esc pressed")
             self.close()
+            
     def save_image(self):
         global emb_arr,class_arr
         var = self.ui.lineEdit.text()
@@ -364,18 +380,11 @@ class GUI_window(QtWidgets.QMainWindow):
         if var!='':
             face = self.face
             face = cv2.cvtColor(face,cv2.COLOR_BGR2RGB)
-            face = cv2.resize(face, (160, 160), interpolation=cv2.INTER_CUBIC)
-            
-            #save_image = QtWidgets.QFileDialog.getExistingDirectory(self,"choose direction","../pictures")
-            #print(save_image)
-            
-            #c_path=os.path.join(save_image,var+'.jpg')
-            #cv2.imwrite(c_path,face)
+            face = cv2.resize(face, (160, 160), interpolation=cv2.INTER_CUBIC)     
             
             pic_path = "../new_pictures/"+var+".jpg"
             
             cv2.imwrite(pic_path,face)
-            #cv2.waitKey(100)
             
             #---------------照片上傳雲端---------------------
             
@@ -385,19 +394,11 @@ class GUI_window(QtWidgets.QMainWindow):
             frame = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
             showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
             self.ui.label_2.setPixmap(QtGui.QPixmap.fromImage(showImage))
-            #f.close()
-            #class_arr = []
-            #emb_arr = []
             
             #-----------重新執行特徵分析並上傳資料庫----------
             embeddings_pre.main() 
             #----------------------------------------------
             self.reload()
-            
-            #f=h5py.File('../pictures/embedding.h5','r')
-            #class_arr=f['class_name'][:]
-            #class_arr=[k.decode() for k in class_arr]
-            #emb_arr=f['embeddings'][:]
             
             #用完就刪除照片
             if os.path.exists(pic_path):
@@ -437,91 +438,11 @@ class GUI_window(QtWidgets.QMainWindow):
     def show_image(self):
         global emb_arr,class_arr
         global in_or_out
-        #偵測是否勾選自動偵測
-        #auto_detect_check = self.ui.auto_detect_check.isChecked()
-        #print(auto_detect_check)
-        #if auto_detect_check == 1:
-            #print("shit")
-            
-        
-        
+
+    
         if self.YOLO_image_queue:
             frame = self.YOLO_image_queue.get()#把BGR圖片拿出來用
-            
-            #frame = cv2.flip(frame,2)
-            #img,scaled_arr,facexy = cv2_face(frame,auto_detect_check)
-            
-            self.face = self.YOLO_face_queue.get()
-            
-            t1=cv2.getTickCount()
-            scaled_arr = cv2_face(self.face)
-            #print(scaled_arr)
-            
-            if scaled_arr is not None:
-                feed_dict = { images_placeholder: scaled_arr, phase_train_placeholder:False ,keep_probability_placeholder:1.0}
-                embs = sess.run(embeddings, feed_dict=feed_dict) 
-                face_class=['Others']
-                diff = []
-                
-                for emb in emb_arr:
-                    diff.append(np.mean(np.square(embs[0] - emb)))
-                min_diff=min(diff)
-                if min_diff<THRED:
-                    index=np.argmin(diff)
-                    face_class[0]=class_arr[index]
-                t2=cv2.getTickCount()
-                t=(t2-t1)/cv2.getTickFrequency()
-                
-                #print("face_class = ",face_class[0])
-                
-                #把人名印在圖片上
-                cv2.putText(frame, '{}'.format(face_class[0]), 
-                        (self.d_left,self.d_top - 25), 
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        1,(0, 0, 255), 1)
-                
-                
-                ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
-                
-                if in_or_out == 1 and face_class[0]=='Others':
-                    in_or_out = 0
-                
-                if in_or_out == 0 and face_class[0]!='Others':
-                    record_data = {
-                          "user_name" : face_class[0],
-                          "time" : ntime      
-                    }
-                    conn = requests.post("http://140.136.150.100/record.php",data = record_data)
-                    #print(face_class[0],ntime)
-                    #print(conn.text)
-                    in_or_out = 1
-                
-                cv2.putText(frame, '{:.4f}'.format(t), (10, 30),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
-                
-                cv2.putText(frame, '{:.4f}'.format(min_diff), (100, 30),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
-                
-            else:
-                #img=frame
-                t3 = cv2.getTickCount()
-                t = (t3-t1)/cv2.getTickFrequency()
-                cv2.putText(frame, '{:.4f}'.format(t), (10, 20),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
-#                cv2.putText(img, '{:.4f}'.format(min_diff), (100, 20),
-#                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
         
-        else:
-            #img=frame
-            t4 = cv2.getTickCount()
-            t = (t4-t1)/cv2.getTickFrequency()
-            cv2.putText(frame, '{:.4f}'.format(t), (10, 20),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
-        
-        #frame = self.YOLO_image_queue.get()
-        #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        #圖片隨視窗改變
-        #cv2.resize(frame,(x,y))
         frame = cv2.resize(frame,(int((self.ui.label.height()-14)/3)*4,(int((self.ui.label.height()-14)/3)*3)))
         #呈現圖片
         
@@ -530,6 +451,7 @@ class GUI_window(QtWidgets.QMainWindow):
             self.ui.label.setPixmap(QtGui.QPixmap.fromImage(showImage))
         else:
             self.ui.label_2.setPixmap(QtGui.QPixmap.fromImage(showImage))
+            
         
     def open_detect(self):
         if self.check == 0:
@@ -618,7 +540,6 @@ def prewhiten(x):
     y = np.multiply(np.subtract(x,mean),1/std_adj)
     return y
 
-
 stylesheet = '''
         QTabWidget {
             background-color: green;
@@ -673,6 +594,7 @@ stylesheet = '''
         }
        
 '''
+
 # In[4]:Run program        
 if __name__ == "__main__":
     import sys

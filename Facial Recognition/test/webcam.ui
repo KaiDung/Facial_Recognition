@@ -20,7 +20,7 @@
    <bool>false</bool>
   </property>
   <property name="windowTitle">
-   <string>GGEZ</string>
+   <string>智慧防疫通行之聯網監測系統</string>
   </property>
   <property name="toolTip">
    <string/>
@@ -157,7 +157,7 @@
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_5">
                <item>
-                <widget class="QPushButton" name="auto_detect">
+                <widget class="QPushButton" name="Recognition_checkbox">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
                    <horstretch>0</horstretch>
@@ -471,7 +471,7 @@
      <x>0</x>
      <y>0</y>
      <width>982</width>
-     <height>25</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>

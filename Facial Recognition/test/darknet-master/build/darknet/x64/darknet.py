@@ -204,7 +204,7 @@ if os.name == "nt":
                     raise ValueError("ForceCPU")
             try:
                 global DARKNET_FORCE_CPU
-                DARKNET_FORCE_CPU = True
+                DARKNET_FORCE_CPU = False
                 if DARKNET_FORCE_CPU:
                     raise ValueError("ForceCPU")
             except NameError as cpu_error:
