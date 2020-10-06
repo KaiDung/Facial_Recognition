@@ -212,7 +212,7 @@ class GUI_window(QtWidgets.QMainWindow):
     
     
     def drawing(self):
-        name_color = (25,202,173)
+        name_color = (138,43,226)
         random.seed(3)  # deterministic bbox colors
         #video = set_saved_video(cap, args.out_filename, (width, height))
         while self.cap.isOpened():
