@@ -34,7 +34,7 @@ from threading import Thread, enumerate
 from queue import Queue
 # In[1]:Load target features
 #open camera
-THRED=0.85
+THRED=0.95
 left_w = 200
 left_h = 160
 face_scale = 228
@@ -161,7 +161,7 @@ class GUI_window(QtWidgets.QMainWindow):
         #宣告一個放人臉的Queue
         self.YOLO_face_queue = Queue(maxsize=1)
 
-        self.FPS = 0
+        self.face = 0
 
         self.args =parser()
         
@@ -212,12 +212,15 @@ class GUI_window(QtWidgets.QMainWindow):
     
     
     def drawing(self):
+        name_color = (25,202,173)
         random.seed(3)  # deterministic bbox colors
         #video = set_saved_video(cap, args.out_filename, (width, height))
         while self.cap.isOpened():
             frame_resized = self.frame_queue.get()     
             detections = self.detections_queue.get()
             fps = self.fps_queue.get()
+            
+            
             if frame_resized is not None:
                 
                 #畫框 + 畫標籤
@@ -231,6 +234,8 @@ class GUI_window(QtWidgets.QMainWindow):
                         
                             face = image[top:bottom,left:right]
                             
+                            self.face = face
+                            
                             #進行人臉辨識
                             t1=cv2.getTickCount()
                             
@@ -242,24 +247,29 @@ class GUI_window(QtWidgets.QMainWindow):
                                 
                             if scaled_arr is not None:
                                 feed_dict = { images_placeholder: scaled_arr, phase_train_placeholder:False ,keep_probability_placeholder:1.0}
-                                embs = sess.run(embeddings, feed_dict=feed_dict) 
+                                embs = sess.run(embeddings, feed_dict=feed_dict)
                                 face_class=['Others']
                                 diff = []
                                 
+                                #尋找最相近的人臉特徵
                                 for emb in emb_arr:
                                     diff.append(np.mean(np.square(embs[0] - emb)))
-                                min_diff=min(diff)
-                                if min_diff<THRED:
-                                    index=np.argmin(diff)
+                                min_diff=min(diff)                     
+                                
+                                index=np.argmin(diff)
+                                      
+                                if min_diff<THRED: 
                                     face_class[0]=class_arr[index]
+                                    
+                                
                                 t2=cv2.getTickCount()
                                 t=(t2-t1)/cv2.getTickFrequency()
                                 
                                 #把人名印在圖片上
                                 cv2.putText(image, '{}'.format(face_class[0]), 
-                                        (left,top - 25), 
+                                        (left,top - 35), 
                                         cv2.FONT_HERSHEY_SIMPLEX,
-                                        1,(0, 0, 255), 2)
+                                        1,name_color, 2)
                                 
                                 ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
                                 
@@ -463,7 +473,7 @@ class GUI_window(QtWidgets.QMainWindow):
             self.T3 = Thread(target=self.drawing, args=()).start()
             #-------------------------------------------
             self.timer_camera = QtCore.QTimer()
-            self.timer_camera.start(60)
+            self.timer_camera.start(70)
             self.timer_camera.timeout.connect(self.show_image)
             self.check = 1
             
@@ -474,7 +484,7 @@ class GUI_window(QtWidgets.QMainWindow):
             self.cap.release()
             self.check = 0
             
-    def changeEvent(self,event):
+    def changeEvent(self,event): 
         print(event.type())
         if event.type() == 99:#99是正常視窗狀態
             if self.i == 1:
@@ -482,7 +492,7 @@ class GUI_window(QtWidgets.QMainWindow):
                     #self.cap=cv2.VideoCapture(0+cv2.CAP_DSHOW)
                     self.cap=cv2.VideoCapture(0)
                     self.timer_camera = QtCore.QTimer()
-                    self.timer_camera.start(60)
+                    self.timer_camera.start(70)
                     self.timer_camera.timeout.connect(self.show_image)
                     print("camera open")
                     self.check = 1
