@@ -20,7 +20,7 @@ import os
 import time
 import sys
 #路徑記得改
-sys.path.append(r'C:\Users\allen\Desktop\Git_Data\Facial Recognition\test\darknet-master\build\darknet\x64')
+sys.path.append(r'C:\Users\A00\Desktop\Git_Data\Facial Recognition\test\darknet-master\build\darknet\x64')
 import requests
 import Drive_API
 from Drive_API import Drive_upload
@@ -108,7 +108,7 @@ class GUI_window(QtWidgets.QMainWindow):
         
         self.ui.Recognition_checkbox.clicked.connect(self.Recognition_check_event)
         
-        self.Recognition_checkbox.setStyleSheet("QPushButton{background:black;border-radius:12;}"
+        self.Recognition_checkbox.setStyleSheet("QPushButton{background:black;border-radius:20;}"
             )
         
         self.widget.setStyleSheet("QWidget{border-width:2px;}"
@@ -160,8 +160,11 @@ class GUI_window(QtWidgets.QMainWindow):
         self.YOLO_image_queue = Queue(maxsize=1)
         #宣告一個放人臉的Queue
         self.YOLO_face_queue = Queue(maxsize=1)
-
+        
         self.face = 0
+
+        self.recorded_people=[]
+        self.clock = 0
 
         self.args =parser()
         
@@ -204,7 +207,7 @@ class GUI_window(QtWidgets.QMainWindow):
             self.detections_queue.put(detections)
             fps = int(1/(time.time() - prev_time))
             self.fps_queue.put(fps)
-            print("FPS: {}".format(fps))
+            #print("FPS: {}".format(fps))
             #印出good,bad,none
             darknet.print_detections(detections, self.args.ext_output)
         self.cap.release()
@@ -212,6 +215,7 @@ class GUI_window(QtWidgets.QMainWindow):
     
     
     def drawing(self):
+        
         name_color = (138,43,226)
         random.seed(3)  # deterministic bbox colors
         #video = set_saved_video(cap, args.out_filename, (width, height))
@@ -273,18 +277,29 @@ class GUI_window(QtWidgets.QMainWindow):
                                 
                                 ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
                                 
-                                if self.in_or_out == 1 and face_class[0]=='Others':
-                                    self.in_or_out = 0
+                                if self.clock % 100 == 0:
+                                    self.recorded_people.clear()
                                 
-                                if self.in_or_out == 0 and face_class[0]!='Others':
-                                    record_data = {
-                                          "user_name" : face_class[0],
-                                          "time" : ntime      
-                                    }
-                                    conn = requests.post("http://140.136.150.100/record.php",data = record_data)
-                                    #print(face_class[0],ntime)
-                                    #print(conn.text)
-                                    self.in_or_out = 1
+                                print("recorded_people = ",self.recorded_people)
+                                
+                                if face_class[0]!='Others' and face_class[0] not in self.recorded_people:
+                                    
+                                    if self.clock % 30 == 0:
+                                        #人名記錄起來
+                                        self.recorded_people.append(face_class[0])
+                                        
+                                        #上傳資料庫search表
+                                        record_data = {
+                                              "user_name" : face_class[0],
+                                              "time" : ntime, 
+                                              "mask" : label
+                                        }
+                                        
+                                        conn = requests.post("http://140.136.150.100/record.php",data = record_data)
+                                        #print(face_class[0],ntime)
+                                        print(conn.text)
+                                        
+                                    
                                 
                                 #印上辨識時間 & 誤差
                                 cv2.putText(image, '{:.4f}'.format(t), (10, 30),
@@ -295,6 +310,8 @@ class GUI_window(QtWidgets.QMainWindow):
                         
                 
                 self.YOLO_image_queue.put(image) #把RGB圖片存起來
+                self.clock += 1
+                print("cloock=",self.clock)
                 
                 if cv2.waitKey(fps) == 27:
                     break
