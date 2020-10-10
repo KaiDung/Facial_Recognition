@@ -19,8 +19,9 @@ import h5py
 import os
 import time
 import sys
+import json
 #路徑記得改
-sys.path.append(r'C:\Users\A00\Desktop\Git_Data\Facial Recognition\test\darknet-master\build\darknet\x64')
+sys.path.append(r'C:\Users\allen\Desktop\Git_Data\Facial Recognition\test\darknet-master\build\darknet\x64')
 import requests
 import Drive_API
 from Drive_API import Drive_upload
@@ -82,8 +83,8 @@ def check_arguments_errors(args):
 
 # In[2]:Load Qt UI & setting function
 class GUI_window(QtWidgets.QMainWindow):
-    def __init__(self,parent=None):
-        
+    def __init__(self,cam_num,parent=None):
+        self.cam_num=cam_num
         #載入資料庫的資料
         self.reload()
         
@@ -311,7 +312,7 @@ class GUI_window(QtWidgets.QMainWindow):
                 
                 self.YOLO_image_queue.put(image) #把RGB圖片存起來
                 self.clock += 1
-                print("cloock=",self.clock)
+                #print("cloock=",self.clock)
                 
                 if cv2.waitKey(fps) == 27:
                     break
@@ -328,8 +329,9 @@ class GUI_window(QtWidgets.QMainWindow):
             }
         conn = requests.post('http://140.136.150.100/search.php', data = Data)
         print(conn.text)
-        var = self.ui.lineEdit_2.setText('')
         
+        var = self.ui.lineEdit_2.setText('')
+
         slm=QStringListModel()
         self.qList = []
         #self.listView.setStyleSheet("Text{horizontalAlignment: Text.AlignCenter;}")
@@ -352,6 +354,7 @@ class GUI_window(QtWidgets.QMainWindow):
         # Data = {
                 #"user_name" : search_object
             #}
+        
     
     def Recognition_check_event(self):
         
@@ -483,7 +486,7 @@ class GUI_window(QtWidgets.QMainWindow):
     def open_detect(self):
         if self.check == 0:
             #self.cap=cv2.VideoCapture(0+cv2.CAP_DSHOW)
-            self.cap=cv2.VideoCapture(0)
+            self.cap=cv2.VideoCapture(self.cam_num)
             #-------------口罩辨識 多執行續啟動----------
             self.T1 = Thread(target=self.video_capture, args=()).start()
             self.T2 = Thread(target=self.inference, args=()).start()
@@ -507,7 +510,7 @@ class GUI_window(QtWidgets.QMainWindow):
             if self.i == 1:
                 if self.check == 0:
                     #self.cap=cv2.VideoCapture(0+cv2.CAP_DSHOW)
-                    self.cap=cv2.VideoCapture(0)
+                    self.cap=cv2.VideoCapture(self.cam_num)
                     self.timer_camera = QtCore.QTimer()
                     self.timer_camera.start(70)
                     self.timer_camera.timeout.connect(self.show_image)
@@ -637,6 +640,7 @@ if __name__ == "__main__":
         else:
             app = QtWidgets.QApplication.instance()
             app.setStyleSheet(stylesheet)
-        myApp = GUI_window()
+        myApp = GUI_window(0)
+        #myApp = GUI_window(1)
         sys.exit(app.exec_())
        

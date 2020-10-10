@@ -17,6 +17,7 @@ while($row = $result->fetch_array())
 {
 	$obj = array("user_name" => $row["user_name"],
 				"time" => $row["time"],
+				"mask" => $row["mask"],
 				);
 	echo json_encode($obj);
 }
