@@ -138,6 +138,7 @@ def draw_boxes(detections, image, colors):
     import cv2
     for label, confidence, bbox in detections:
         left, top, right, bottom = bbox2points(bbox)
+        
         cv2.rectangle(image, (left, top), (right, bottom), colors[label], 1)
         '''
         cv2.putText(image, "{} [{:.2f}]".format(label, float(confidence)),
