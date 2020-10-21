@@ -285,7 +285,7 @@ class GUI_window(QtWidgets.QMainWindow):
                                 
                                 if face_class[0]!='Others' and face_class[0] not in self.recorded_people:
                                     
-                                    if self.clock % 30 == 0:
+                                    if self.clock % 20 == 0:
                                         #人名記錄起來
                                         self.recorded_people.append(face_class[0])
                                         
@@ -295,11 +295,9 @@ class GUI_window(QtWidgets.QMainWindow):
                                               "time" : ntime, 
                                               "mask" : label
                                         }
-                                        
                                         conn = requests.post("http://140.136.150.100/record.php",data = record_data)
                                         #print(face_class[0],ntime)
-                                        print(conn.text)
-                                        
+                                        #print(conn.text)                                   
                                     
                                 
                                 #印上辨識時間 & 誤差

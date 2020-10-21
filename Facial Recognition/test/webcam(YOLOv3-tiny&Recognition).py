@@ -49,7 +49,7 @@ def parser():
     parser.add_argument("--out_filename", type=str, default="",
                         help="inference video name. Not saved if empty")
     #weights的路徑要改
-    parser.add_argument("--weights", default="./yolo_training/cfg/weights/yolov3-tiny_30000.weights",
+    parser.add_argument("--weights", default="./yolo_training/cfg/weights/yolov3-tiny_16000.weights",
                         help="yolo weights path")
     
     parser.add_argument("--dont_show", action='store_true',
@@ -298,7 +298,7 @@ class GUI_window(QtWidgets.QMainWindow):
                                         
                                         conn = requests.post("http://140.136.150.100/record.php",data = record_data)
                                         #print(face_class[0],ntime)
-                                        print(conn.text)
+                                        #print(conn.text)
                                         
                                     
                                 
