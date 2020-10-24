@@ -136,9 +136,8 @@ class GUI_window(QtWidgets.QMainWindow):
         
         self.Recognition_check = False
         self.label2 = QLabel(self)
-
         self.label1 = QLabel(self)
-
+        
         self.label1.setStyleSheet("QLabel{background:0;}"
                    "QLabel{color:rgb(300,300,300,120);font-size:30px;font-weight:bold;font-family:宋体;}"
                    )
@@ -231,15 +230,21 @@ class GUI_window(QtWidgets.QMainWindow):
                 #畫框 + 畫標籤
                 image = darknet.draw_boxes(detections, frame_resized, self.class_colors)
                 
+                
+                for label, confidence, bbox in detections:
+                            
+                    left,top,right,bottom = darknet.bbox2points(bbox)
+                
+                    face = image[top:bottom,left:right]
+                    
+                    self.face = face
+                    
+
+                            
                 if self.Recognition_check == True:
                     if detections:
-                        for label, confidence, bbox in detections:
-                            
-                            left,top,right,bottom = darknet.bbox2points(bbox)
                         
-                            face = image[top:bottom,left:right]
-                            
-                            self.face = face
+                            face = self.face
                             
                             #進行人臉辨識
                             t1=cv2.getTickCount()
@@ -276,8 +281,8 @@ class GUI_window(QtWidgets.QMainWindow):
                                         cv2.FONT_HERSHEY_SIMPLEX,
                                         1,name_color, 2)
                                 
-                                ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
-                                
+                                #ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
+                                                         
                                 if self.clock % 100 == 0:
                                     self.recorded_people.clear()
                                 
@@ -285,22 +290,27 @@ class GUI_window(QtWidgets.QMainWindow):
                                 
                                 if face_class[0]!='Others' and face_class[0] not in self.recorded_people:
                                     
-                                    if self.clock % 10 == 0:
+                                    if self.clock % 5 == 0:
                                         #人名記錄起來
                                         self.recorded_people.append(face_class[0])
                                         
                                         #上傳資料庫search表
+                                        T = time.localtime()
+
                                         record_data = {
                                               "user_name" : face_class[0],
-                                              "time" : ntime, 
+                                              "year" : T.tm_year, 
+                                              "month": T.tm_mon,
+                                              "day"  : T.tm_mday,
+                                              "hour" : T.tm_hour,
+                                              "min" : T.tm_min,
+                                              "sec" : T.tm_sec,
                                               "mask" : label
                                         }
                                         conn = requests.post("http://140.136.150.100/record.php",data = record_data)
                                         #print(face_class[0],ntime)
                                         #print(conn.text)                                   
 
-                                        if label == 'bad' or label == 'none':
-                                            print('口罩沒戴好')
                                 
                                 #印上辨識時間 & 誤差
                                 cv2.putText(image, '{:.4f}'.format(t), (10, 30),
@@ -322,10 +332,17 @@ class GUI_window(QtWidgets.QMainWindow):
         cv2.destroyAllWindows()
     # In[]
     def search_event(self):
+        self.ui.listWidget.clear()
+        
+        cb = self.ui.comboBox.currentText()
+        cb2 = self.ui.comboBox_2.currentText()
+        #print("cb = {cb};cb2={cb2}".format(cb=cb,cb2=cb2))
         search_object = self.ui.lineEdit_2.text()
-        print(search_object)
+        #print(search_object)
         Data = {
-            "user_name" : search_object
+            "user_name" : search_object,
+            "cb"        : cb,
+            "cb2"       : cb2
             }
         conn = requests.post('http://140.136.150.100/search.php', data = Data)
         print(conn.text)
@@ -337,7 +354,6 @@ class GUI_window(QtWidgets.QMainWindow):
         #self.listView.setStyleSheet("Text{horizontalAlignment: Text.AlignCenter;}")
         #self.qList=['Item 1','Item 2','Item 3','Item 4']
         temp = ""
-        self.ui.listWidget.clear()
         for char in conn.text:
             if char != '}' and char != '{':
                 temp = temp + char
@@ -466,17 +482,17 @@ class GUI_window(QtWidgets.QMainWindow):
         print("-----Reload完成----")
         
     def show_image(self):
-        global emb_arr,class_arr
-        global in_or_out
-
     
         if self.YOLO_image_queue:
             frame = self.YOLO_image_queue.get()#把BGR圖片拿出來用
+            
+        #隨視窗縮放
+        frame = cv2.resize(frame,(int((self.ui.label.height()-16)/3)*4,(int((self.ui.label.height()-16)/3)*3)))
         
-        frame = cv2.resize(frame,(int((self.ui.label.height()-14)/3)*4,(int((self.ui.label.height()-14)/3)*3)))
         #呈現圖片
-        
         showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
+        
+        
         if self.ui.tabWidget.currentIndex() != 2:
             self.ui.label.setPixmap(QtGui.QPixmap.fromImage(showImage))
         else:
