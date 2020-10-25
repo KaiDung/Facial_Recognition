@@ -20,6 +20,7 @@ import os
 import time
 import sys
 import json
+import matplotlib.pyplot as plt
 #路徑記得改
 sys.path.append(r'C:\Users\allen\Desktop\Git_Data\Facial Recognition\test\darknet-master\build\darknet\x64')
 import requests
@@ -334,43 +335,67 @@ class GUI_window(QtWidgets.QMainWindow):
     def search_event(self):
         self.ui.listWidget.clear()
         
+        #把comboBox的選項一起post出去
         cb = self.ui.comboBox.currentText()
         cb2 = self.ui.comboBox_2.currentText()
-        #print("cb = {cb};cb2={cb2}".format(cb=cb,cb2=cb2))
+        
         search_object = self.ui.lineEdit_2.text()
-        #print(search_object)
         Data = {
             "user_name" : search_object,
             "cb"        : cb,
             "cb2"       : cb2
             }
         conn = requests.post('http://140.136.150.100/search.php', data = Data)
-        print(conn.text)
+        
+        #統計人數
+        good = 0
+        bad  = 0
+        none = 0
+        for i in json.loads(conn.text):
+            if i["mask"] == "none":
+                none +=1
+            if i["mask"] == "bad":
+                bad +=1
+            if i["mask"] == "good":
+                good +=1
+        
+        #畫圓餅圖
+        if(good + bad + none !=0):
+            labels='good','bad','none'
+            size = [good,bad,none]
+            plt.pie(size , labels = labels,autopct='%1.1f%%')
+            plt.axis('equal')
+            plt.savefig("pie.png")
+            Pie = QtGui.QPixmap("pie.png")
+            Pie.scaled(self.ui.pie_label.size())
+            self.ui.pie_label.setScaledContents(True)
+            self.ui.pie_label.setPixmap(Pie)
+        else:
+            self.ui.pie_label.clear()
+        
+        plt.clf()
         
         var = self.ui.lineEdit_2.setText('')
-
-        slm=QStringListModel()
-        self.qList = []
-        #self.listView.setStyleSheet("Text{horizontalAlignment: Text.AlignCenter;}")
-        #self.qList=['Item 1','Item 2','Item 3','Item 4']
-        temp = ""
-        for char in conn.text:
-            if char != '}' and char != '{':
-                temp = temp + char
-            else:
-                temp = temp.replace("\\","")
-                temp = temp.replace('"',"")
-                temp = temp.replace(",","   ")
-                temp = temp.replace("e:","e: ")
-                self.ui.listWidget.addItem(temp)
-                temp = ''
-        #self.qList.append('jim99224')
-        #slm.setStringList(self.qList)
-        #self.ui.listWidget.setModel(slm)
-        # Data = {
-                #"user_name" : search_object
-            #}
         
+        #先加入第一行
+        self.ui.listWidget.addItem("User Name\tTime\t\t\tMask")
+        #把所有結果列出來
+        for i in json.loads(conn.text):
+            temp = "{U}\t\t{Y}/{M}/{D} {H}:{Min}:{S}\t{Mask}".format(
+                U = i["user_name"],
+                Y = i["year"],
+                M = i["month"],
+                D = i["day"],
+                H = i["hour"],
+                Min=i["min"],
+                S = i["sec"],
+                Mask = i["mask"],
+                )
+            self.ui.listWidget.addItem(temp)
+        
+        #加入總統計資料
+        self.ui.listWidget.addItem("good:{g}人\tbad:{b}人\t\tnone:{n}人".format(g=good,b=bad,n=none))
+
     
     def Recognition_check_event(self):
         
