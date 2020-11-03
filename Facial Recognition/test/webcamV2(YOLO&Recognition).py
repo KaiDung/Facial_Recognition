@@ -85,11 +85,16 @@ class Dialog_window(QtWidgets.QDialog):
         QtWidgets.QDialog.__init__(self)
         self.ui = uic.loadUi("Dialog.ui",self)
         self.setWindowIcon(QtGui.QIcon("window_icon.png"))
+        self.ui.label.setStyleSheet("QLabel{font: bold 28px;}")
+        
         self.OK_button.clicked.connect(self.close_even)
         self.show()
 
     def close_even(self):
         self.close()
+    
+    def finish_even(self):
+        self.label.setText("上傳完成!!")
 
 # In[2]:Load Qt UI & setting function
 class GUI_window(QtWidgets.QMainWindow):
@@ -128,6 +133,9 @@ class GUI_window(QtWidgets.QMainWindow):
                                   "QWidget{height:100;}"
                                   "QWidget{border-radius:5px;}"
                                   "QWidget{background-color:qlineargradient(x1 : 0, y1 : 0, x2 : 0, y2 : 1, stop :  0.0 #f5f9ff,stop :   0.5 #c7dfff,stop :   0.55 #afd2ff,stop :   1.0 #c0dbff);}")
+
+        self.ui.label_3.setStyleSheet("QLabel{font: bold 28px;}")
+        self.ui.label_4.setStyleSheet("QLabel{font: bold 28px;}")
 
         self.ui.close_button.clicked.connect(self.close_camera)
         self.ui.tabWidget.setTabIcon(0,QtGui.QIcon("home.png"))
@@ -474,8 +482,12 @@ class GUI_window(QtWidgets.QMainWindow):
             self.timer_camera.timeout.connect(self.show_image)
             self.check = 1
             
-        
         if var!='':
+            #跳出Dialog視窗
+            dialog = Dialog_window()
+            T4=Thread(target = dialog.exec_(), args=()).start()
+            
+            
             face = self.face
             face = cv2.cvtColor(face,cv2.COLOR_BGR2RGB)
             face = cv2.resize(face, (160, 160), interpolation=cv2.INTER_CUBIC)     
@@ -505,9 +517,8 @@ class GUI_window(QtWidgets.QMainWindow):
             
             print('-----Save完成-----')
             var = self.ui.lineEdit.setText('')
-            #跳出Dialog視窗
-            dialog = Dialog_window()
-            dialog.show()
+            
+            T5=Thread(target = dialog.finish_even(), args=()).start()
     
     def reload(self):
         global class_arr,emb_arr
