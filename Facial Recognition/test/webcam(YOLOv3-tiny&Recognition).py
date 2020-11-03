@@ -22,7 +22,7 @@ import sys
 import json
 import matplotlib.pyplot as plt
 #路徑記得改
-sys.path.append(r'C:\Users\user\Desktop\fr\Facial Recognition\test\darknet-master\build\darknet\x64')
+sys.path.append(r'C:\Users\allen\Desktop\Git_Data\Facial Recognition\test\darknet-master\build\darknet\x64')
 import requests
 import Drive_API
 from Drive_API import Drive_upload
@@ -40,7 +40,6 @@ THRED=0.95
 left_w = 200
 left_h = 160
 face_scale = 228
-
 # In[]
 #-----------------------口罩辨識初始化definiton--------------------------------
 def parser():
@@ -65,7 +64,7 @@ def parser():
     parser.add_argument("--data_file", default="./yolo_training/cfg/obj.data",
                         help="path to data file")
     
-    parser.add_argument("--thresh", type=float, default=.25,
+    parser.add_argument("--thresh", type=float, default=.85,
                         help="remove detections with confidence below this value")
     return parser.parse_args()
 
@@ -80,7 +79,16 @@ def check_arguments_errors(args):
     #if str2int(args.input) == str and not os.path.exists(args.input):
         #raise(ValueError("Invalid video path {}".format(os.path.abspath(args.input))))
 
+# In[]
+class Dialog_window(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        QtWidgets.QDialog.__init__(self)
+        self.ui = uic.loadUi("Dialog.ui",self)
+        self.OK_button.clicked.connect(self.close_even)
+        self.show()
 
+    def close_even(self):
+        self.close()
 
 # In[2]:Load Qt UI & setting function
 class GUI_window(QtWidgets.QMainWindow):
@@ -145,7 +153,7 @@ class GUI_window(QtWidgets.QMainWindow):
         # 動態顯示時間在label上
         timer = QTimer(self)
         timer.timeout.connect(self.showtime)
-        timer.start()
+        timer.start(10)
         self.label1.setAlignment(QtCore.Qt.AlignCenter)
         self.label2.setGeometry(self.label.width()+20,150,45,45)
         #self.label1.resize(self.width(),50)
@@ -183,20 +191,30 @@ class GUI_window(QtWidgets.QMainWindow):
         self.d_height = darknet.network_height(self.network)
         self.darknet_image = darknet.make_image(self.d_width, self.d_height, 3)
         
+        self.fps_value=1
+        self.yolo_t=1
+        
         self.show()
     # In[]
     def video_capture(self):
+        fps_clock=1
         while self.cap.isOpened():
             ret, frame = self.cap.read()
+            
+            self.fps_value = self.ui.FPS_Slider.value()
+            #print("fps_value=",fps_value)
             if not ret:
                 break
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame_resized = cv2.resize(frame_rgb, (self.d_width, self.d_height),
-                                       interpolation=cv2.INTER_LINEAR)
-            frame_resized = cv2.flip(frame_resized,2)
-            self.frame_queue.put(frame_resized)
-            darknet.copy_image_from_bytes(self.darknet_image, frame_resized.tobytes())
-            self.darknet_image_queue.put(self.darknet_image)
+            if ret and fps_clock % self.fps_value == 0:
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                frame_resized = cv2.resize(frame_rgb, (self.d_width, self.d_height),
+                                           interpolation=cv2.INTER_LINEAR)
+                frame_resized = cv2.flip(frame_resized,2)
+                self.frame_queue.put(frame_resized)
+                darknet.copy_image_from_bytes(self.darknet_image, frame_resized.tobytes())
+                self.darknet_image_queue.put(self.darknet_image)
+                #print("fps_clock == ",self.fps_clock)
+            fps_clock+=1
         self.cap.release()
         print("Thread 1 stop")
     
@@ -207,6 +225,7 @@ class GUI_window(QtWidgets.QMainWindow):
             detections = darknet.detect_image(self.network, self.class_names, self.darknet_image, thresh=self.args.thresh)
             self.detections_queue.put(detections)
             fps = int(1/(time.time() - prev_time))
+            self.yolo_t = time.time() - prev_time
             self.fps_queue.put(fps)
             #print("FPS: {}".format(fps))
             #印出good,bad,none
@@ -248,7 +267,7 @@ class GUI_window(QtWidgets.QMainWindow):
                             face = self.face
                             
                             #進行人臉辨識
-                            t1=cv2.getTickCount()
+                            t1=time.time()
                             
                             scaled_arr = None
                             try:
@@ -273,8 +292,9 @@ class GUI_window(QtWidgets.QMainWindow):
                                     face_class[0]=class_arr[index]
                                     
                                 
-                                t2=cv2.getTickCount()
-                                t=(t2-t1)/cv2.getTickFrequency()
+                                t2=time.time()
+                                
+                                t = int(1/(t2-t1+self.yolo_t))
                                 
                                 #把人名印在圖片上
                                 cv2.putText(image, '{}'.format(face_class[0]), 
@@ -314,12 +334,16 @@ class GUI_window(QtWidgets.QMainWindow):
 
                                 
                                 #印上辨識時間 & 誤差
-                                cv2.putText(image, '{:.4f}'.format(t), (10, 30),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
+                                cv2.putText(image, 'FPS:{}'.format(t), (10, 20),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 1)
                     
-                                cv2.putText(image, '{:.4f}'.format(min_diff), (100, 30),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
+                                cv2.putText(image, 'Loss:{:.4f}'.format(min_diff), (100, 20),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 1)
                         
+                if self.Recognition_check == False:
+                    #印上FPS
+                    cv2.putText(image, 'FPS:{}'.format(fps), (10,20),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 1)
                 
                 self.YOLO_image_queue.put(image) #把RGB圖片存起來
                 self.clock += 1
@@ -331,6 +355,7 @@ class GUI_window(QtWidgets.QMainWindow):
         self.cap.release()
         print("Thread 3 stop")
         cv2.destroyAllWindows()
+              
     # In[]
     def search_event(self):
         self.ui.listWidget.clear()
@@ -395,8 +420,8 @@ class GUI_window(QtWidgets.QMainWindow):
         
         #加入總統計資料
         self.ui.listWidget.addItem("")
-        self.ui.listWidget.addItem("good:{g}人\tbad:{b}人\tnone:{n}人".format(g=good,b=bad,n=none))
-
+        self.ui.listWidget.addItem("good:{g}人\tbad:{b}人\t\tnone:{n}人".format(g=good,b=bad,n=none))
+        
     
     def Recognition_check_event(self):
         
@@ -441,10 +466,10 @@ class GUI_window(QtWidgets.QMainWindow):
         global emb_arr,class_arr
         var = self.ui.lineEdit.text()
         if self.check == 0:
-            self.cap = cv2.VideoCapture(1)
+            self.cap = cv2.VideoCapture(0)
             #self.cap = cv2.VideoCapture(1+cv2.CAP_DSHOW)
             self.timer_camera = QtCore.QTimer()
-            self.timer_camera.start(150)
+            self.timer_camera.start(70)
             self.timer_camera.timeout.connect(self.show_image)
             self.check = 1
             
@@ -460,7 +485,7 @@ class GUI_window(QtWidgets.QMainWindow):
             
             #---------------照片上傳雲端---------------------
             
-            Drive_upload(pic_path,var)
+            #Drive_upload(pic_path,var)
             
             #-----------------------------------------------
             frame = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
@@ -479,7 +504,9 @@ class GUI_window(QtWidgets.QMainWindow):
             
             print('-----Save完成-----')
             var = self.ui.lineEdit.setText('')
-            
+            #跳出Dialog視窗
+            dialog = Dialog_window()
+            dialog.show()
     
     def reload(self):
         global class_arr,emb_arr
@@ -535,7 +562,7 @@ class GUI_window(QtWidgets.QMainWindow):
             self.T3 = Thread(target=self.drawing, args=()).start()
             #-------------------------------------------
             self.timer_camera = QtCore.QTimer()
-            self.timer_camera.start(70)
+            self.timer_camera.start(10)
             self.timer_camera.timeout.connect(self.show_image)
             self.check = 1
             
@@ -546,6 +573,7 @@ class GUI_window(QtWidgets.QMainWindow):
             self.cap.release()
             self.check = 0
             
+            
     def changeEvent(self,event): 
         print(event.type())
         if event.type() == 99:#99是正常視窗狀態
@@ -554,7 +582,7 @@ class GUI_window(QtWidgets.QMainWindow):
                     #self.cap=cv2.VideoCapture(0+cv2.CAP_DSHOW)
                     self.cap=cv2.VideoCapture(self.cam_num)
                     self.timer_camera = QtCore.QTimer()
-                    self.timer_camera.start(70)
+                    self.timer_camera.start(10)
                     self.timer_camera.timeout.connect(self.show_image)
                     print("camera open")
                     self.check = 1
@@ -682,7 +710,6 @@ if __name__ == "__main__":
         else:
             app = QtWidgets.QApplication.instance()
             app.setStyleSheet(stylesheet)
-        myApp = GUI_window(1)
-        #myApp = GUI_window(1)
+        myApp = GUI_window(0)
         sys.exit(app.exec_())
        
