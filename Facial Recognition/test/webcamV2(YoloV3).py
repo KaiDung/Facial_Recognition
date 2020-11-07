@@ -49,7 +49,7 @@ def parser():
     parser.add_argument("--out_filename", type=str, default="",
                         help="inference video name. Not saved if empty")
     #weights的路徑要改
-    parser.add_argument("--weights", default="./yolo_training/cfg/weights/yolov3-tiny_16000.weights",
+    parser.add_argument("--weights", default="./yolo_training/cfg/weights/yolov3_400000.weights",
                         help="yolo weights path")
     
     parser.add_argument("--dont_show", action='store_true',
@@ -58,7 +58,7 @@ def parser():
     parser.add_argument("--ext_output", action='store_false',
                         help="display bbox coordinates of detected objects")
     #config設定檔的路徑要改
-    parser.add_argument("--config_file", default="./yolo_training/cfg/yolov3-tiny.cfg",
+    parser.add_argument("--config_file", default="./yolo_training/cfg/yolov3.cfg",
                         help="path to config file")
     #data的路徑要改
     parser.add_argument("--data_file", default="./yolo_training/cfg/obj.data",
@@ -84,11 +84,14 @@ class Dialog_window(QtWidgets.QDialog):
     def __init__(self, parent=None):
         QtWidgets.QDialog.__init__(self)
         self.ui = uic.loadUi("Dialog.ui",self)
+        self.setWindowIcon(QtGui.QIcon("window_icon.png"))
+        self.ui.label.setStyleSheet("QLabel{font: bold 28px;}")
         self.OK_button.clicked.connect(self.close_even)
         self.show()
-
+                
     def close_even(self):
         self.close()
+    
 
 # In[2]:Load Qt UI & setting function
 class GUI_window(QtWidgets.QMainWindow):
@@ -127,6 +130,9 @@ class GUI_window(QtWidgets.QMainWindow):
                                   "QWidget{height:100;}"
                                   "QWidget{border-radius:5px;}"
                                   "QWidget{background-color:qlineargradient(x1 : 0, y1 : 0, x2 : 0, y2 : 1, stop :  0.0 #f5f9ff,stop :   0.5 #c7dfff,stop :   0.55 #afd2ff,stop :   1.0 #c0dbff);}")
+
+        self.ui.label_3.setStyleSheet("QLabel{font: bold 28px;}")
+        self.ui.label_4.setStyleSheet("QLabel{font: bold 28px;}")
 
         self.ui.close_button.clicked.connect(self.close_camera)
         self.ui.tabWidget.setTabIcon(0,QtGui.QIcon("home.png"))
@@ -190,10 +196,8 @@ class GUI_window(QtWidgets.QMainWindow):
         self.d_width = darknet.network_width(self.network)
         self.d_height = darknet.network_height(self.network)
         self.darknet_image = darknet.make_image(self.d_width, self.d_height, 3)
-        
         self.fps_value=1
         self.yolo_t=1
-        
         self.show()
     # In[]
     def video_capture(self):
@@ -215,7 +219,6 @@ class GUI_window(QtWidgets.QMainWindow):
                 self.darknet_image_queue.put(self.darknet_image)
                 #print("fps_clock == ",self.fps_clock)
             fps_clock+=1
-        self.cap.release()
         print("Thread 1 stop")
     
     def inference(self):
@@ -230,7 +233,6 @@ class GUI_window(QtWidgets.QMainWindow):
             #print("FPS: {}".format(fps))
             #印出good,bad,none
             darknet.print_detections(detections, self.args.ext_output)
-        self.cap.release()
         print("Thread 2 stop")
     
     
@@ -243,7 +245,10 @@ class GUI_window(QtWidgets.QMainWindow):
             frame_resized = self.frame_queue.get()     
             detections = self.detections_queue.get()
             fps = self.fps_queue.get()
+            result = time.localtime(time.time())
             
+            if result.tm_sec == 0 and result.tm_min % 5 == 0:
+                self.reload()
             
             if frame_resized is not None:
                 
@@ -334,7 +339,7 @@ class GUI_window(QtWidgets.QMainWindow):
 
                                 
                                 #印上辨識時間 & 誤差
-                                cv2.putText(image, 'FPS:{}'.format(t), (10, 20),
+                                cv2.putText(image, 'FPS:{}'.format(t/self.fps_value), (10, 20),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 1)
                     
                                 cv2.putText(image, 'Loss:{:.4f}'.format(min_diff), (100, 20),
@@ -342,7 +347,7 @@ class GUI_window(QtWidgets.QMainWindow):
                         
                 if self.Recognition_check == False:
                     #印上FPS
-                    cv2.putText(image, 'FPS:{}'.format(fps), (10,20),
+                    cv2.putText(image, 'FPS:{}'.format(fps/self.fps_value), (10,20),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 1)
                 
                 self.YOLO_image_queue.put(image) #把RGB圖片存起來
@@ -352,10 +357,8 @@ class GUI_window(QtWidgets.QMainWindow):
                 if cv2.waitKey(fps) == 27:
                     break
                 
-        self.cap.release()
         print("Thread 3 stop")
-        cv2.destroyAllWindows()
-              
+      
     # In[]
     def search_event(self):
         self.ui.listWidget.clear()
@@ -421,6 +424,8 @@ class GUI_window(QtWidgets.QMainWindow):
         #加入總統計資料
         self.ui.listWidget.addItem("")
         self.ui.listWidget.addItem("good:{g}人\tbad:{b}人\t\tnone:{n}人".format(g=good,b=bad,n=none))
+        #跳出Dialog視窗
+        dialog = Dialog_window()
         
     
     def Recognition_check_event(self):
@@ -461,52 +466,79 @@ class GUI_window(QtWidgets.QMainWindow):
         if event.key() == 81:# 81 是 q按鍵的事件編碼
             print("Esc pressed")
             self.close()
-            
+    
     def save_image(self):
-        global emb_arr,class_arr
         var = self.ui.lineEdit.text()
         if self.check == 0:
             self.cap = cv2.VideoCapture(0)
             #self.cap = cv2.VideoCapture(1+cv2.CAP_DSHOW)
             self.timer_camera = QtCore.QTimer()
-            self.timer_camera.start(70)
+            self.timer_camera.start(50)
             self.timer_camera.timeout.connect(self.show_image)
             self.check = 1
             
-        
         if var!='':
+            #save_image前置
             face = self.face
             face = cv2.cvtColor(face,cv2.COLOR_BGR2RGB)
-            face = cv2.resize(face, (160, 160), interpolation=cv2.INTER_CUBIC)     
-            
+            face = cv2.resize(face, (160, 160), interpolation=cv2.INTER_CUBIC)  
             pic_path = "../new_pictures/"+var+".jpg"
-            
             cv2.imwrite(pic_path,face)
+                                    
             
-            #---------------照片上傳雲端---------------------
-            
+            #---------------照片上傳雲端--------------------
             #Drive_upload(pic_path,var)
+            #----------------------------------------------
             
-            #-----------------------------------------------
+            #-----------重新執行特徵分析並上傳資料庫---------
+            path = '../new_pictures/'
+    
+            files1 = os.listdir(path)
+            ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
+
+            for step in files1:
+                if step == "1.txt":
+                    continue
+                split = os.path.splitext(step)
+                pic_name = split[0]
+                
+                scaled_arr=[]
+                img = cv2.imread(path + step)
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                scaled =cv2.resize(gray,(160,160),interpolation=cv2.INTER_LINEAR)
+                scaled.astype(float)
+                scaled = np.array(scaled).reshape(160, 160, 1)
+                scaled = embeddings_pre.prewhiten(scaled)
+                scaled_arr.append(scaled)
+                
+                feed_dict = { images_placeholder: scaled_arr, phase_train_placeholder:False ,keep_probability_placeholder:1.0}
+                #---------------------------------上傳資料庫---------------------------------
+                x = sess.run(embeddings, feed_dict=feed_dict)
+                Data = {
+                    "user_name" : pic_name,
+                    "embedding" : str(x),
+                    "date"      : str(ntime)
+                }
+                conn = requests.post("http://140.136.150.100/upload.php", data = Data)
+                #----------------------------------------------------------------------------
+                print(conn.text)
+            #----------------------------------------------
+            #跳出上傳完成視窗
+            dialog = Dialog_window()
+            
+            
+            self.reload()
+            #用完就刪除照片
+            if os.path.exists(pic_path):
+                os.remove(pic_path)
             frame = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
             showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
             self.ui.label_2.setPixmap(QtGui.QPixmap.fromImage(showImage))
             
-            #-----------重新執行特徵分析並上傳資料庫----------
-            embeddings_pre.main() 
-            #----------------------------------------------
-            self.reload()
-            
-            #用完就刪除照片
-            if os.path.exists(pic_path):
-                os.remove(pic_path)
-            
-            
             print('-----Save完成-----')
             var = self.ui.lineEdit.setText('')
-            #跳出Dialog視窗
-            dialog = Dialog_window()
-            dialog.show()
+            
+            
     
     def reload(self):
         global class_arr,emb_arr
@@ -562,7 +594,7 @@ class GUI_window(QtWidgets.QMainWindow):
             self.T3 = Thread(target=self.drawing, args=()).start()
             #-------------------------------------------
             self.timer_camera = QtCore.QTimer()
-            self.timer_camera.start(10)
+            self.timer_camera.start(50)
             self.timer_camera.timeout.connect(self.show_image)
             self.check = 1
             
@@ -575,14 +607,14 @@ class GUI_window(QtWidgets.QMainWindow):
             
             
     def changeEvent(self,event): 
-        print(event.type())
+        #print(event.type())
         if event.type() == 99:#99是正常視窗狀態
             if self.i == 1:
                 if self.check == 0:
                     #self.cap=cv2.VideoCapture(0+cv2.CAP_DSHOW)
                     self.cap=cv2.VideoCapture(self.cam_num)
                     self.timer_camera = QtCore.QTimer()
-                    self.timer_camera.start(10)
+                    self.timer_camera.start(50)
                     self.timer_camera.timeout.connect(self.show_image)
                     print("camera open")
                     self.check = 1

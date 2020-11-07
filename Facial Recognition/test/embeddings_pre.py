@@ -50,12 +50,13 @@ def cv2_face():
     ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
 
     with tf.Session() as sess:
+        
         load_model('../model/')
         images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
         embeddings = tf.get_default_graph().get_tensor_by_name("Mul:0")
         phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
         keep_probability_placeholder= tf.get_default_graph().get_tensor_by_name('keep_probability:0')
-        
+                
         for step in files1:
             if step == "1.txt":
                 continue
