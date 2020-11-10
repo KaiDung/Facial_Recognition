@@ -88,10 +88,26 @@ class Dialog_window(QtWidgets.QDialog):
         self.ui.label.setStyleSheet("QLabel{font: bold 28px;}")
         self.OK_button.clicked.connect(self.close_even)
         self.show()
-                
+        
     def close_even(self):
         self.close()
-    
+        
+# In[]
+class Dialog2_window(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        QtWidgets.QDialog.__init__(self)
+        self.ui = uic.loadUi("Dialog2.ui",self)
+        self.setWindowIcon(QtGui.QIcon("window_icon.png"))
+        self.ui.label.setStyleSheet("QLabel{font: bold 24px;}")
+        self.ui.label_2.setStyleSheet("QLabel{font: bold 11px;}")
+        self.show()
+        self.timer = QtCore.QTimer()
+        self.timer.start(5000) #5000毫秒 = 5秒
+        self.timer.timeout.connect(self.close_even)
+        
+    def close_even(self):
+        self.close()
+        
 
 # In[2]:Load Qt UI & setting function
 class GUI_window(QtWidgets.QMainWindow):
@@ -198,6 +214,7 @@ class GUI_window(QtWidgets.QMainWindow):
         self.darknet_image = darknet.make_image(self.d_width, self.d_height, 3)
         self.fps_value=1
         self.yolo_t=1
+        self.r = 0
         self.show()
     # In[]
     def video_capture(self):
@@ -245,10 +262,6 @@ class GUI_window(QtWidgets.QMainWindow):
             frame_resized = self.frame_queue.get()     
             detections = self.detections_queue.get()
             fps = self.fps_queue.get()
-            result = time.localtime(time.time())
-            
-            if result.tm_sec == 0 and result.tm_min % 5 == 0:
-                self.reload()
             
             if frame_resized is not None:
                 
@@ -335,7 +348,9 @@ class GUI_window(QtWidgets.QMainWindow):
                                         }
                                         conn = requests.post("http://140.136.150.100/record.php",data = record_data)
                                         #print(face_class[0],ntime)
-                                        #print(conn.text)                                   
+                                        #print(conn.text)       
+   
+                                        #dialog2 = Dialog2_window()
 
                                 
                                 #印上辨識時間 & 誤差
@@ -388,9 +403,18 @@ class GUI_window(QtWidgets.QMainWindow):
                 good +=1
         
         #畫圓餅圖
+        labels = []
+        size = []
         if(good + bad + none !=0):
-            labels='good','bad','none'
-            size = [good,bad,none]
+            if good !=0:
+                labels.append('good')
+                size.append(good)
+            if bad !=0:
+                labels.append('bad')
+                size.append(bad)
+            if none !=0:
+                labels.append('none')
+                size.append(none)
             plt.pie(size , labels = labels,autopct='%1.1f%%')
             plt.axis('equal')
             plt.savefig("pie.png")
@@ -400,10 +424,10 @@ class GUI_window(QtWidgets.QMainWindow):
             self.ui.pie_label.setPixmap(Pie)
         else:
             self.ui.pie_label.clear()
-        
+            
         plt.clf()
-        
         var = self.ui.lineEdit_2.setText('')
+        
         
         #先加入第一行
         self.ui.listWidget.addItem("User Name\tTime\t\t\t\tMask")
@@ -424,8 +448,9 @@ class GUI_window(QtWidgets.QMainWindow):
         #加入總統計資料
         self.ui.listWidget.addItem("")
         self.ui.listWidget.addItem("good:{g}人\tbad:{b}人\t\tnone:{n}人".format(g=good,b=bad,n=none))
-        #跳出Dialog視窗
-        dialog = Dialog_window()
+        
+        #測試dialog2
+        dialog2 = Dialog2_window()
         
     
     def Recognition_check_event(self):
@@ -583,6 +608,14 @@ class GUI_window(QtWidgets.QMainWindow):
         else:
             self.ui.label_2.setPixmap(QtGui.QPixmap.fromImage(showImage))
             
+        #每5分鐘reload一次
+        T = time.localtime(time.time())
+        
+        if int(T.tm_sec) == 0 and int(T.tm_min) % 5 == 0 and self.r == 0:
+            self.reload()
+            self.r = 1
+        elif int(T.tm_sec) == 1 and self.r == 1:
+            self.r = 0
         
     def open_detect(self):
         if self.check == 0:
