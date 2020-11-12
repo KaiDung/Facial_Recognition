@@ -29,7 +29,7 @@
     </font>
    </property>
    <property name="text">
-    <string>辨識成功，通行許可!</string>
+    <string>這裡是label</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignCenter</set>
@@ -51,7 +51,7 @@
     </font>
    </property>
    <property name="text">
-    <string>(此訊息將在5秒後關閉)</string>
+    <string>(此訊息會自動關閉)</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignCenter</set>

@@ -94,16 +94,26 @@ class Dialog_window(QtWidgets.QDialog):
         
 # In[]
 class Dialog2_window(QtWidgets.QDialog):
-    def __init__(self, parent=None):
+    def __init__(self,label_flag, parent=None):
         QtWidgets.QDialog.__init__(self)
         self.ui = uic.loadUi("Dialog2.ui",self)
         self.setWindowIcon(QtGui.QIcon("window_icon.png"))
         self.ui.label.setStyleSheet("QLabel{font: bold 24px;}")
         self.ui.label_2.setStyleSheet("QLabel{font: bold 11px;}")
+        
+        if label_flag == 'good':
+            self.ui.label.setText("辨識成功!允許通行!")
+        elif label_flag == 'bad':
+            self.ui.label.setText("請把口罩戴好!並重新辨識!")
+        elif label_flag == 'none':
+            self.ui.label.setText("請把口罩帶起來!並重新辨識!")
+        
         self.show()
+        
         self.timer = QtCore.QTimer()
-        self.timer.start(5000) #5000毫秒 = 5秒
+        self.timer.start(3000) #3000毫秒 = 3秒
         self.timer.timeout.connect(self.close_even)
+        
         
     def close_even(self):
         self.close()
@@ -212,10 +222,16 @@ class GUI_window(QtWidgets.QMainWindow):
         self.d_width = darknet.network_width(self.network)
         self.d_height = darknet.network_height(self.network)
         self.darknet_image = darknet.make_image(self.d_width, self.d_height, 3)
+        # In[] 雜七雜八flag
         self.fps_value=1
         self.yolo_t=1
         self.r = 0
+        self.show_dialog2 = 0
+        
+        self.label_flag =''
+        
         self.show()
+        
     # In[]
     def video_capture(self):
         fps_clock=1
@@ -276,8 +292,8 @@ class GUI_window(QtWidgets.QMainWindow):
                     face = image[top:bottom,left:right]
                     
                     self.face = face
-                    
-
+                    self.label_flag = label
+                
                             
                 if self.Recognition_check == True:
                     if detections:
@@ -327,31 +343,32 @@ class GUI_window(QtWidgets.QMainWindow):
                                 
                                 print("recorded_people = ",self.recorded_people)
                                 
-                                if face_class[0]!='Others' and face_class[0] not in self.recorded_people:
-                                    
-                                    if self.clock % 5 == 0:
-                                        #人名記錄起來
-                                        self.recorded_people.append(face_class[0])
+                                if self.ui.tabWidget.currentIndex() == 1:
+                                    if face_class[0]!='Others' and face_class[0] not in self.recorded_people :
                                         
-                                        #上傳資料庫search表
-                                        T = time.localtime()
-
-                                        record_data = {
-                                              "user_name" : face_class[0],
-                                              "year" : T.tm_year, 
-                                              "month": T.tm_mon,
-                                              "day"  : T.tm_mday,
-                                              "hour" : T.tm_hour,
-                                              "min" : T.tm_min,
-                                              "sec" : T.tm_sec,
-                                              "mask" : label
-                                        }
-                                        conn = requests.post("http://140.136.150.100/record.php",data = record_data)
-                                        #print(face_class[0],ntime)
-                                        #print(conn.text)       
-   
-                                        #dialog2 = Dialog2_window()
-
+                                        if self.clock % 60 == 0:
+                                            #人名記錄起來
+                                            self.recorded_people.append(face_class[0])
+                                            
+                                            #上傳資料庫search表
+                                            T = time.localtime()
+    
+                                            record_data = {
+                                                  "user_name" : face_class[0],
+                                                  "year" : T.tm_year, 
+                                                  "month": T.tm_mon,
+                                                  "day"  : T.tm_mday,
+                                                  "hour" : T.tm_hour,
+                                                  "min" : T.tm_min,
+                                                  "sec" : T.tm_sec,
+                                                  "mask" : label,
+                                                  "table":'search'
+                                            }
+                                            conn = requests.post("http://140.136.150.100/record.php",data = record_data)
+                                            #print(face_class[0],ntime)
+                                            #print(conn.text)       
+                                            self.show_dialog2 = 1
+                                            face_class[0]='Others'
                                 
                                 #印上辨識時間 & 誤差
                                 cv2.putText(image, 'FPS:{}'.format(t/self.fps_value), (10, 20),
@@ -361,6 +378,27 @@ class GUI_window(QtWidgets.QMainWindow):
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 1)
                         
                 if self.Recognition_check == False:
+                    '''
+                    if self.label_flag !='' and self.ui.tabWidget.currentIndex() == 1:
+                        if self.clock % 60 == 0:
+                            #上傳資料庫search2表
+                            T = time.localtime()
+        
+                            record_data = {
+                                  "user_name" : 'Unknow',
+                                  "year" : T.tm_year, 
+                                  "month": T.tm_mon,
+                                  "day"  : T.tm_mday,
+                                  "hour" : T.tm_hour,
+                                  "min" : T.tm_min,
+                                  "sec" : T.tm_sec,
+                                  "mask" : self.label_flag,
+                                  "table":'search2'
+                            }
+                            conn = requests.post("http://140.136.150.100/record.php",data = record_data)
+                            print(conn.text) 
+                        self.label_flag =''
+                    '''
                     #印上FPS
                     cv2.putText(image, 'FPS:{}'.format(fps/self.fps_value), (10,20),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 1)
@@ -374,19 +412,22 @@ class GUI_window(QtWidgets.QMainWindow):
                 
         print("Thread 3 stop")
       
+        
     # In[]
     def search_event(self):
         self.ui.listWidget.clear()
         
         #把comboBox的選項一起post出去
-        cb = self.ui.comboBox.currentText()
+        #cb = self.ui.comboBox.currentText()
         cb2 = self.ui.comboBox_2.currentText()
+        cb3 = self.ui.comboBox_3.currentText()
         
         search_object = self.ui.lineEdit_2.text()
         Data = {
             "user_name" : search_object,
-            "cb"        : cb,
-            "cb2"       : cb2
+            #"cb"        : cb,
+            "cb2"       : cb2,
+            "cb3"       : cb3
             }
         conn = requests.post('http://140.136.150.100/search.php', data = Data)
         
@@ -449,8 +490,6 @@ class GUI_window(QtWidgets.QMainWindow):
         self.ui.listWidget.addItem("")
         self.ui.listWidget.addItem("good:{g}人\tbad:{b}人\t\tnone:{n}人".format(g=good,b=bad,n=none))
         
-        #測試dialog2
-        dialog2 = Dialog2_window()
         
     
     def Recognition_check_event(self):
@@ -616,6 +655,10 @@ class GUI_window(QtWidgets.QMainWindow):
             self.r = 1
         elif int(T.tm_sec) == 1 and self.r == 1:
             self.r = 0
+            
+        if self.show_dialog2 == 1 and self.ui.tabWidget.currentIndex() == 1:
+            dialog2 = Dialog2_window(self.label_flag)
+            self.show_dialog2 = 0
         
     def open_detect(self):
         if self.check == 0:
