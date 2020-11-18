@@ -106,7 +106,7 @@ class Dialog2_window(QtWidgets.QDialog):
         elif label_flag == 'bad':
             self.ui.label.setText("請把口罩戴好!並重新辨識!")
         elif label_flag == 'none':
-            self.ui.label.setText("請把口罩帶起來!並重新辨識!")
+            self.ui.label.setText("請把口罩戴起來!並重新辨識!")
         
         self.show()
         
@@ -343,7 +343,7 @@ class GUI_window(QtWidgets.QMainWindow):
                                 
                                 print("recorded_people = ",self.recorded_people)
                                 
-                                if self.ui.tabWidget.currentIndex() == 1:
+                                if self.ui.tabWidget.currentIndex() == 0:
                                     if face_class[0]!='Others' and face_class[0] not in self.recorded_people :
                                         
                                         if self.clock % 60 == 0:
@@ -551,7 +551,7 @@ class GUI_window(QtWidgets.QMainWindow):
                                     
             
             #---------------照片上傳雲端--------------------
-            #Drive_upload(pic_path,var)
+            Drive_upload(pic_path,var)
             #----------------------------------------------
             
             #-----------重新執行特徵分析並上傳資料庫---------
@@ -655,8 +655,7 @@ class GUI_window(QtWidgets.QMainWindow):
             self.r = 1
         elif int(T.tm_sec) == 1 and self.r == 1:
             self.r = 0
-            
-        if self.show_dialog2 == 1 and self.ui.tabWidget.currentIndex() == 1:
+        if self.show_dialog2 == 1 and self.ui.tabWidget.currentIndex() == 0:
             dialog2 = Dialog2_window(self.label_flag)
             self.show_dialog2 = 0
         
