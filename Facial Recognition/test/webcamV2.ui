@@ -126,7 +126,7 @@
              <number>7</number>
             </property>
             <property name="text">
-             <string>No Image</string>
+             <string>No Signal</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -566,7 +566,7 @@
              <number>7</number>
             </property>
             <property name="text">
-             <string>No Image</string>
+             <string>No Signal</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>

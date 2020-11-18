@@ -22,7 +22,7 @@ import sys
 import json
 import matplotlib.pyplot as plt
 #路徑記得改
-sys.path.append(r'C:\Users\allen\Desktop\Git_Data\Facial Recognition\test\darknet-master\build\darknet\x64')
+sys.path.append(r'C:\Users\A00\Desktop\Git_Data\Facial Recognition\test\darknet-master\build\darknet\x64')
 import requests
 import Drive_API
 from Drive_API import Drive_upload
@@ -36,7 +36,7 @@ from threading import Thread, enumerate
 from queue import Queue
 # In[1]:Load target features
 #open camera
-THRED=0.95
+THRED=0.7
 left_w = 200
 left_h = 160
 face_scale = 228
@@ -117,6 +117,23 @@ class Dialog2_window(QtWidgets.QDialog):
         
     def close_even(self):
         self.close()
+# In[]
+class Register_Dialog(QtWidgets.QDialog):
+    def __init__(self,var, parent=None):
+        QtWidgets.QDialog.__init__(self)
+        self.ui = uic.loadUi("Register_Dialog.ui",self)
+        self.setWindowIcon(QtGui.QIcon("window_icon.png"))
+        self.ui.label.setStyleSheet("QLabel{font: bold 18px;}")
+        
+        #放照片
+        frame = cv2.imread('../new_pictures/'+var+'.jpg')
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
+        self.ui.img_label.setPixmap(QtGui.QPixmap.fromImage(showImage))
+        
+        #判斷按OK還是按Cancel
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
         
 
 # In[2]:Load Qt UI & setting function
@@ -338,7 +355,7 @@ class GUI_window(QtWidgets.QMainWindow):
                                 
                                 #ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
                                                          
-                                if self.clock % 100 == 0:
+                                if self.clock % 120 == 0:
                                     self.recorded_people.clear()
                                 
                                 print("recorded_people = ",self.recorded_people)
@@ -549,6 +566,7 @@ class GUI_window(QtWidgets.QMainWindow):
             pic_path = "../new_pictures/"+var+".jpg"
             cv2.imwrite(pic_path,face)
                                     
+<<<<<<< HEAD
             
             #---------------照片上傳雲端--------------------
             Drive_upload(pic_path,var)
@@ -565,42 +583,65 @@ class GUI_window(QtWidgets.QMainWindow):
                     continue
                 split = os.path.splitext(step)
                 pic_name = split[0]
+=======
+            Dialog3 = Register_Dialog(var)
+            result = Dialog3.exec_()
+            if result == 1:
+                #---------------照片上傳雲端--------------------
+                #Drive_upload(pic_path,var)
+                #----------------------------------------------
+>>>>>>> 3ffad2bc334861f198003d2dcf3418876ce82582
                 
-                scaled_arr=[]
-                img = cv2.imread(path + step)
-                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                scaled =cv2.resize(gray,(160,160),interpolation=cv2.INTER_LINEAR)
-                scaled.astype(float)
-                scaled = np.array(scaled).reshape(160, 160, 1)
-                scaled = embeddings_pre.prewhiten(scaled)
-                scaled_arr.append(scaled)
+                #-----------重新執行特徵分析並上傳資料庫---------
+                path = '../new_pictures/'
+        
+                files1 = os.listdir(path)
+                ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
+    
+                for step in files1:
+                    if step == "1.txt":
+                        continue
+                    split = os.path.splitext(step)
+                    pic_name = split[0]
+                    
+                    scaled_arr=[]
+                    img = cv2.imread(path + step)
+                    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                    scaled =cv2.resize(gray,(160,160),interpolation=cv2.INTER_LINEAR)
+                    scaled.astype(float)
+                    scaled = np.array(scaled).reshape(160, 160, 1)
+                    scaled = embeddings_pre.prewhiten(scaled)
+                    scaled_arr.append(scaled)
+                    
+                    feed_dict = { images_placeholder: scaled_arr, phase_train_placeholder:False ,keep_probability_placeholder:1.0}
+                    #---------------------------------上傳資料庫---------------------------------
+                    x = sess.run(embeddings, feed_dict=feed_dict)
+                    Data = {
+                        "user_name" : pic_name,
+                        "embedding" : str(x),
+                        "date"      : str(ntime)
+                    }
+                    conn = requests.post("http://140.136.150.100/upload.php", data = Data)
+                    #----------------------------------------------------------------------------
+                    print(conn.text)
+                #----------------------------------------------
                 
-                feed_dict = { images_placeholder: scaled_arr, phase_train_placeholder:False ,keep_probability_placeholder:1.0}
-                #---------------------------------上傳資料庫---------------------------------
-                x = sess.run(embeddings, feed_dict=feed_dict)
-                Data = {
-                    "user_name" : pic_name,
-                    "embedding" : str(x),
-                    "date"      : str(ntime)
-                }
-                conn = requests.post("http://140.136.150.100/upload.php", data = Data)
-                #----------------------------------------------------------------------------
-                print(conn.text)
-            #----------------------------------------------
-            #跳出上傳完成視窗
-            dialog = Dialog_window()
+                #跳出上傳完成視窗
+                dialog = Dialog_window()
+                self.reload()
+                var = self.ui.lineEdit.setText('')
             
             
-            self.reload()
             #用完就刪除照片
             if os.path.exists(pic_path):
                 os.remove(pic_path)
+            '''
             frame = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
             showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
             self.ui.label_2.setPixmap(QtGui.QPixmap.fromImage(showImage))
+            '''
+
             
-            print('-----Save完成-----')
-            var = self.ui.lineEdit.setText('')
             
             
     
@@ -655,6 +696,10 @@ class GUI_window(QtWidgets.QMainWindow):
             self.r = 1
         elif int(T.tm_sec) == 1 and self.r == 1:
             self.r = 0
+<<<<<<< HEAD
+=======
+            
+>>>>>>> 3ffad2bc334861f198003d2dcf3418876ce82582
         if self.show_dialog2 == 1 and self.ui.tabWidget.currentIndex() == 0:
             dialog2 = Dialog2_window(self.label_flag)
             self.show_dialog2 = 0
@@ -679,6 +724,10 @@ class GUI_window(QtWidgets.QMainWindow):
             self.timer_camera.stop()
             self.cap.release()
             self.check = 0
+            self.ui.label.clear()
+            self.ui.label.setText("No Signal")
+            self.ui.label_2.clear()
+            self.ui.label_2.setText("No Signal")
             
             
     def changeEvent(self,event): 
