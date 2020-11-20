@@ -21,7 +21,7 @@ import sys
 import json
 import matplotlib.pyplot as plt
 #路徑記得改
-sys.path.append(r'C:\Users\allen\Desktop\Git_Data\Facial Recognition\test\darknet-master\build\darknet\x64')
+sys.path.append(r'C:\Users\A00\Desktop\Git_Data\Facial Recognition\test\darknet-master\build\darknet\x64')
 import requests
 import Drive_API
 from Drive_API import Drive_upload
@@ -35,7 +35,7 @@ from threading import Thread, enumerate
 from queue import Queue
 # In[1]:Load target features
 #open camera
-THRED=0.7
+THRED=0.75
 left_w = 200
 left_h = 160
 face_scale = 228
@@ -63,7 +63,7 @@ def parser():
     parser.add_argument("--data_file", default="./yolo_training/cfg/obj.data",
                         help="path to data file")
     
-    parser.add_argument("--thresh", type=float, default=.85,
+    parser.add_argument("--thresh", type=float, default=.8,
                         help="remove detections with confidence below this value")
     return parser.parse_args()
 
@@ -122,7 +122,11 @@ class Register_Dialog(QtWidgets.QDialog):
         QtWidgets.QDialog.__init__(self)
         self.ui = uic.loadUi("Register_Dialog.ui",self)
         self.setWindowIcon(QtGui.QIcon("window_icon.png"))
-        self.ui.label.setStyleSheet("QLabel{font: bold 18px;}")
+        self.ui.label.setStyleSheet("QLabel{font: bold 22px;}")
+        self.ui.buttonBox.setStyleSheet('''QPushButton {
+                                        width: 150px;
+                                        font-size: 30px;
+                                        height: 50px;}''')
         
         #放照片
         frame = cv2.imread('../new_pictures/'+var+'.jpg')
@@ -222,7 +226,7 @@ class GUI_window(QtWidgets.QMainWindow):
         self.face = 0
 
         self.recorded_people=[]
-        self.clock = 0
+        self.clock = 1
 
         self.args =parser()
         
@@ -270,6 +274,7 @@ class GUI_window(QtWidgets.QMainWindow):
                 #print("fps_clock == ",self.fps_clock)
             fps_clock+=1
         print("Thread 1 stop")
+        self.cap.release()
     
     def inference(self):
         while self.cap.isOpened():
@@ -284,6 +289,7 @@ class GUI_window(QtWidgets.QMainWindow):
             #印出good,bad,none
             darknet.print_detections(detections, self.args.ext_output)
         print("Thread 2 stop")
+        self.cap.release()
     
     
     def drawing(self):
@@ -376,8 +382,8 @@ class GUI_window(QtWidgets.QMainWindow):
                                                   "month": T.tm_mon,
                                                   "day"  : T.tm_mday,
                                                   "hour" : T.tm_hour,
-                                                  "min" : T.tm_min,
-                                                  "sec" : T.tm_sec,
+                                                  "min"  : T.tm_min,
+                                                  "sec"  : T.tm_sec,
                                                   "mask" : label,
                                                   "table":'search'
                                             }
@@ -395,9 +401,9 @@ class GUI_window(QtWidgets.QMainWindow):
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 1)
                         
                 if self.Recognition_check == False:
-                    '''
-                    if self.label_flag !='' and self.ui.tabWidget.currentIndex() == 1:
-                        if self.clock % 60 == 0:
+                    
+                    if self.ui.tabWidget.currentIndex() == 0:
+                        if self.clock % 120 == 0:
                             #上傳資料庫search2表
                             T = time.localtime()
         
@@ -407,15 +413,16 @@ class GUI_window(QtWidgets.QMainWindow):
                                   "month": T.tm_mon,
                                   "day"  : T.tm_mday,
                                   "hour" : T.tm_hour,
-                                  "min" : T.tm_min,
-                                  "sec" : T.tm_sec,
+                                  "min"  : T.tm_min,
+                                  "sec"  : T.tm_sec,
                                   "mask" : self.label_flag,
                                   "table":'search2'
                             }
                             conn = requests.post("http://140.136.150.100/record.php",data = record_data)
                             print(conn.text) 
-                        self.label_flag =''
-                    '''
+                            self.show_dialog2 = 1    
+                        
+                    
                     #印上FPS
                     cv2.putText(image, 'FPS:{}'.format(fps/self.fps_value), (10,20),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 1)
@@ -424,10 +431,11 @@ class GUI_window(QtWidgets.QMainWindow):
                 self.clock += 1
                 #print("cloock=",self.clock)
                 
-                if cv2.waitKey(fps) == 27:
-                    break
-                
+                #if cv2.waitKey(fps) == 27:
+                   # break
+    
         print("Thread 3 stop")
+        self.cap.release()
       
         
     # In[]
@@ -435,14 +443,14 @@ class GUI_window(QtWidgets.QMainWindow):
         self.ui.listWidget.clear()
         
         #把comboBox的選項一起post出去
-        #cb = self.ui.comboBox.currentText()
+        cb = self.ui.comboBox.currentText()
         cb2 = self.ui.comboBox_2.currentText()
         cb3 = self.ui.comboBox_3.currentText()
         
         search_object = self.ui.lineEdit_2.text()
         Data = {
             "user_name" : search_object,
-            #"cb"        : cb,
+            "cb"        : cb,
             "cb2"       : cb2,
             "cb3"       : cb3
             }
@@ -460,7 +468,7 @@ class GUI_window(QtWidgets.QMainWindow):
             if i["mask"] == "good":
                 good +=1
         
-        #畫圓餅圖
+        
         labels = []
         size = []
         if(good + bad + none !=0):
@@ -473,6 +481,7 @@ class GUI_window(QtWidgets.QMainWindow):
             if none !=0:
                 labels.append('none')
                 size.append(none)
+            #畫圓餅圖
             plt.pie(size , labels = labels,autopct='%1.1f%%')
             plt.axis('equal')
             plt.savefig("pie.png")
@@ -480,6 +489,7 @@ class GUI_window(QtWidgets.QMainWindow):
             Pie.scaled(self.ui.pie_label.size())
             self.ui.pie_label.setScaledContents(True)
             self.ui.pie_label.setPixmap(Pie)
+            
         else:
             self.ui.pie_label.clear()
             
@@ -721,26 +731,24 @@ class GUI_window(QtWidgets.QMainWindow):
                     print("camera open")
                     self.check = 1
             self.i = 0 
+        
         if event.type() == 105:#105是縮小視窗狀態
-            if self.i == 0:
-                if self.check == 1:
-                    self.timer_camera.stop()
-                    self.cap.release()
-                    print("camera close")
-                    self.check = 0
-            self.i = 1
+            self.close_camera()
+    '''
     def closeEvent(self,event):
         #global f
         if self.check == 1:
             self.timer_camera.stop() 
-            self.cap.release()
+            #self.cap.release()
             print("camera open")
         else:
             print("camera close")
         #f.close()
         print("close window")
+    '''
     def stop(self):
         print("stop pressed")
+        self.cap.release()
         cv2.destroyAllWindows()
         time.sleep(1)
         self.close()
@@ -806,7 +814,7 @@ stylesheet = '''
             font: bold;
             color: #006aff;
             font: bold large "Arial";
-            height: 50px;
+            height: 65px;
             border-color: beige;
         }
         QLabel {

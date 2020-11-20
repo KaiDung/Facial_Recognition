@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Jan 17 14:53:43 2019
-
 @author: UX501
 """
 # In[0]: import library & function
@@ -36,7 +35,7 @@ from threading import Thread, enumerate
 from queue import Queue
 # In[1]:Load target features
 #open camera
-THRED=0.95
+THRED=0.75
 left_w = 200
 left_h = 160
 face_scale = 228
@@ -106,7 +105,7 @@ class Dialog2_window(QtWidgets.QDialog):
         elif label_flag == 'bad':
             self.ui.label.setText("請把口罩戴好!並重新辨識!")
         elif label_flag == 'none':
-            self.ui.label.setText("請把口罩帶起來!並重新辨識!")
+            self.ui.label.setText("請把口罩戴起來!並重新辨識!")
         
         self.show()
         
@@ -117,6 +116,28 @@ class Dialog2_window(QtWidgets.QDialog):
         
     def close_even(self):
         self.close()
+# In[]
+class Register_Dialog(QtWidgets.QDialog):
+    def __init__(self,var, parent=None):
+        QtWidgets.QDialog.__init__(self)
+        self.ui = uic.loadUi("Register_Dialog.ui",self)
+        self.setWindowIcon(QtGui.QIcon("window_icon.png"))
+        self.ui.label.setStyleSheet("QLabel{font: bold 22px;}")
+        self.ui.buttonBox.setStyleSheet('''QPushButton {
+                                        width: 150px;
+                                        font-size: 30px;
+                                        height: 50px;}''')
+        
+        #放照片
+        frame = cv2.imread('../new_pictures/'+var+'.jpg')
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
+        self.ui.img_label.setPixmap(QtGui.QPixmap.fromImage(showImage))
+        self.ui.img_label.setScaledContents (True) #自適應縮放大小
+        
+        #判斷按OK還是按Cancel
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
         
 
 # In[2]:Load Qt UI & setting function
@@ -205,7 +226,7 @@ class GUI_window(QtWidgets.QMainWindow):
         self.face = 0
 
         self.recorded_people=[]
-        self.clock = 0
+        self.clock = 1
 
         self.args =parser()
         
@@ -338,12 +359,12 @@ class GUI_window(QtWidgets.QMainWindow):
                                 
                                 #ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
                                                          
-                                if self.clock % 100 == 0:
+                                if self.clock % 120 == 0:
                                     self.recorded_people.clear()
                                 
                                 print("recorded_people = ",self.recorded_people)
                                 
-                                if self.ui.tabWidget.currentIndex() == 1:
+                                if self.ui.tabWidget.currentIndex() == 0:
                                     if face_class[0]!='Others' and face_class[0] not in self.recorded_people :
                                         
                                         if self.clock % 60 == 0:
@@ -359,8 +380,8 @@ class GUI_window(QtWidgets.QMainWindow):
                                                   "month": T.tm_mon,
                                                   "day"  : T.tm_mday,
                                                   "hour" : T.tm_hour,
-                                                  "min" : T.tm_min,
-                                                  "sec" : T.tm_sec,
+                                                  "min"  : T.tm_min,
+                                                  "sec"  : T.tm_sec,
                                                   "mask" : label,
                                                   "table":'search'
                                             }
@@ -378,9 +399,9 @@ class GUI_window(QtWidgets.QMainWindow):
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 1)
                         
                 if self.Recognition_check == False:
-                    '''
-                    if self.label_flag !='' and self.ui.tabWidget.currentIndex() == 1:
-                        if self.clock % 60 == 0:
+                    
+                    if self.ui.tabWidget.currentIndex() == 0:
+                        if self.clock % 120 == 0:
                             #上傳資料庫search2表
                             T = time.localtime()
         
@@ -390,15 +411,16 @@ class GUI_window(QtWidgets.QMainWindow):
                                   "month": T.tm_mon,
                                   "day"  : T.tm_mday,
                                   "hour" : T.tm_hour,
-                                  "min" : T.tm_min,
-                                  "sec" : T.tm_sec,
+                                  "min"  : T.tm_min,
+                                  "sec"  : T.tm_sec,
                                   "mask" : self.label_flag,
                                   "table":'search2'
                             }
                             conn = requests.post("http://140.136.150.100/record.php",data = record_data)
                             print(conn.text) 
-                        self.label_flag =''
-                    '''
+                            self.show_dialog2 = 1    
+                        
+                    
                     #印上FPS
                     cv2.putText(image, 'FPS:{}'.format(fps/self.fps_value), (10,20),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 1)
@@ -409,7 +431,7 @@ class GUI_window(QtWidgets.QMainWindow):
                 
                 if cv2.waitKey(fps) == 27:
                     break
-                
+    
         print("Thread 3 stop")
       
         
@@ -418,14 +440,14 @@ class GUI_window(QtWidgets.QMainWindow):
         self.ui.listWidget.clear()
         
         #把comboBox的選項一起post出去
-        #cb = self.ui.comboBox.currentText()
+        cb = self.ui.comboBox.currentText()
         cb2 = self.ui.comboBox_2.currentText()
         cb3 = self.ui.comboBox_3.currentText()
         
         search_object = self.ui.lineEdit_2.text()
         Data = {
             "user_name" : search_object,
-            #"cb"        : cb,
+            "cb"        : cb,
             "cb2"       : cb2,
             "cb3"       : cb3
             }
@@ -443,7 +465,7 @@ class GUI_window(QtWidgets.QMainWindow):
             if i["mask"] == "good":
                 good +=1
         
-        #畫圓餅圖
+        
         labels = []
         size = []
         if(good + bad + none !=0):
@@ -456,6 +478,7 @@ class GUI_window(QtWidgets.QMainWindow):
             if none !=0:
                 labels.append('none')
                 size.append(none)
+            #畫圓餅圖
             plt.pie(size , labels = labels,autopct='%1.1f%%')
             plt.axis('equal')
             plt.savefig("pie.png")
@@ -463,6 +486,7 @@ class GUI_window(QtWidgets.QMainWindow):
             Pie.scaled(self.ui.pie_label.size())
             self.ui.pie_label.setScaledContents(True)
             self.ui.pie_label.setPixmap(Pie)
+            
         else:
             self.ui.pie_label.clear()
             
@@ -549,58 +573,63 @@ class GUI_window(QtWidgets.QMainWindow):
             pic_path = "../new_pictures/"+var+".jpg"
             cv2.imwrite(pic_path,face)
                                     
-            
-            #---------------照片上傳雲端--------------------
-            #Drive_upload(pic_path,var)
-            #----------------------------------------------
-            
-            #-----------重新執行特徵分析並上傳資料庫---------
-            path = '../new_pictures/'
+            Dialog3 = Register_Dialog(var)
+            result = Dialog3.exec_()
+            if result == 1:
+                #---------------照片上傳雲端--------------------
+                #Drive_upload(pic_path,var)
+                #----------------------------------------------
+                
+                #-----------重新執行特徵分析並上傳資料庫---------
+                path = '../new_pictures/'
+        
+                files1 = os.listdir(path)
+                ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
     
-            files1 = os.listdir(path)
-            ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
-
-            for step in files1:
-                if step == "1.txt":
-                    continue
-                split = os.path.splitext(step)
-                pic_name = split[0]
+                for step in files1:
+                    if step == "1.txt":
+                        continue
+                    split = os.path.splitext(step)
+                    pic_name = split[0]
+                    
+                    scaled_arr=[]
+                    img = cv2.imread(path + step)
+                    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                    scaled =cv2.resize(gray,(160,160),interpolation=cv2.INTER_LINEAR)
+                    scaled.astype(float)
+                    scaled = np.array(scaled).reshape(160, 160, 1)
+                    scaled = embeddings_pre.prewhiten(scaled)
+                    scaled_arr.append(scaled)
+                    
+                    feed_dict = { images_placeholder: scaled_arr, phase_train_placeholder:False ,keep_probability_placeholder:1.0}
+                    #---------------------------------上傳資料庫---------------------------------
+                    x = sess.run(embeddings, feed_dict=feed_dict)
+                    Data = {
+                        "user_name" : pic_name,
+                        "embedding" : str(x),
+                        "date"      : str(ntime)
+                    }
+                    conn = requests.post("http://140.136.150.100/upload.php", data = Data)
+                    #----------------------------------------------------------------------------
+                    print(conn.text)
+                #----------------------------------------------
                 
-                scaled_arr=[]
-                img = cv2.imread(path + step)
-                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                scaled =cv2.resize(gray,(160,160),interpolation=cv2.INTER_LINEAR)
-                scaled.astype(float)
-                scaled = np.array(scaled).reshape(160, 160, 1)
-                scaled = embeddings_pre.prewhiten(scaled)
-                scaled_arr.append(scaled)
-                
-                feed_dict = { images_placeholder: scaled_arr, phase_train_placeholder:False ,keep_probability_placeholder:1.0}
-                #---------------------------------上傳資料庫---------------------------------
-                x = sess.run(embeddings, feed_dict=feed_dict)
-                Data = {
-                    "user_name" : pic_name,
-                    "embedding" : str(x),
-                    "date"      : str(ntime)
-                }
-                conn = requests.post("http://140.136.150.100/upload.php", data = Data)
-                #----------------------------------------------------------------------------
-                print(conn.text)
-            #----------------------------------------------
-            #跳出上傳完成視窗
-            dialog = Dialog_window()
+                #跳出上傳完成視窗
+                dialog = Dialog_window()
+                self.reload()
+                var = self.ui.lineEdit.setText('')
             
             
-            self.reload()
             #用完就刪除照片
             if os.path.exists(pic_path):
                 os.remove(pic_path)
+            '''
             frame = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
             showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
             self.ui.label_2.setPixmap(QtGui.QPixmap.fromImage(showImage))
+            '''
+
             
-            print('-----Save完成-----')
-            var = self.ui.lineEdit.setText('')
             
             
     
@@ -656,7 +685,7 @@ class GUI_window(QtWidgets.QMainWindow):
         elif int(T.tm_sec) == 1 and self.r == 1:
             self.r = 0
             
-        if self.show_dialog2 == 1 and self.ui.tabWidget.currentIndex() == 1:
+        if self.show_dialog2 == 1 and self.ui.tabWidget.currentIndex() == 0:
             dialog2 = Dialog2_window(self.label_flag)
             self.show_dialog2 = 0
         
@@ -680,6 +709,10 @@ class GUI_window(QtWidgets.QMainWindow):
             self.timer_camera.stop()
             self.cap.release()
             self.check = 0
+            self.ui.label.clear()
+            self.ui.label.setText("No Signal")
+            self.ui.label_2.clear()
+            self.ui.label_2.setText("No Signal")
             
             
     def changeEvent(self,event): 
@@ -695,14 +728,10 @@ class GUI_window(QtWidgets.QMainWindow):
                     print("camera open")
                     self.check = 1
             self.i = 0 
+        
         if event.type() == 105:#105是縮小視窗狀態
-            if self.i == 0:
-                if self.check == 1:
-                    self.timer_camera.stop()
-                    self.cap.release()
-                    print("camera close")
-                    self.check = 0
-            self.i = 1
+            self.close_camera()
+        
     def closeEvent(self,event):
         #global f
         if self.check == 1:
@@ -780,7 +809,7 @@ stylesheet = '''
             font: bold;
             color: #006aff;
             font: bold large "Arial";
-            height: 50px;
+            height: 65px;
             border-color: beige;
         }
         QLabel {
@@ -820,4 +849,3 @@ if __name__ == "__main__":
             app.setStyleSheet(stylesheet)
         myApp = GUI_window(0)
         sys.exit(app.exec_())
-       
