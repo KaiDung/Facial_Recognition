@@ -702,7 +702,7 @@ class GUI_window(QtWidgets.QMainWindow):
             self.T3 = Thread(target=self.drawing, args=()).start()
             #-------------------------------------------
             self.timer_camera = QtCore.QTimer()
-            self.timer_camera.start(10)
+            self.timer_camera.start(70)
             self.timer_camera.timeout.connect(self.show_image)
             self.check = 1
             
@@ -726,7 +726,7 @@ class GUI_window(QtWidgets.QMainWindow):
                     #self.cap=cv2.VideoCapture(0+cv2.CAP_DSHOW)
                     self.cap=cv2.VideoCapture(self.cam_num)
                     self.timer_camera = QtCore.QTimer()
-                    self.timer_camera.start(10)
+                    self.timer_camera.start(70)
                     self.timer_camera.timeout.connect(self.show_image)
                     print("camera open")
                     self.check = 1
@@ -748,13 +748,11 @@ class GUI_window(QtWidgets.QMainWindow):
     '''
     def stop(self):
         print("stop pressed")
-        self.cap.release()
-        cv2.destroyAllWindows()
+        self.close_camera()
         time.sleep(1)
         self.close()
         
-        
-        
+            
 
     # In[3]:detect face   
 def cv2_face(face):

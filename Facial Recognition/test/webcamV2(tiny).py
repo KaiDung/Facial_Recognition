@@ -748,13 +748,11 @@ class GUI_window(QtWidgets.QMainWindow):
     '''
     def stop(self):
         print("stop pressed")
-        self.cap.release()
-        cv2.destroyAllWindows()
+        self.close_camera()
         time.sleep(1)
         self.close()
         
-        
-        
+       
 
     # In[3]:detect face   
 def cv2_face(face):
