@@ -21,7 +21,7 @@ import sys
 import json
 import matplotlib.pyplot as plt
 #路徑記得改
-sys.path.append(r'C:\Users\A00\Desktop\Git_Data\Facial Recognition\test\darknet-master\build\darknet\x64')
+sys.path.append(r'C:\Users\allen\Desktop\Git_Data\Facial Recognition\test\darknet-master\build\darknet\x64')
 import requests
 import Drive_API
 from Drive_API import Drive_upload
@@ -48,7 +48,7 @@ def parser():
     parser.add_argument("--out_filename", type=str, default="",
                         help="inference video name. Not saved if empty")
     #weights的路徑要改
-    parser.add_argument("--weights", default="./yolo_training/cfg/weights/yolov3_400000.weights",
+    parser.add_argument("--weights", default="./yolo_training/cfg/weights/yolov3-tiny_16000.weights",
                         help="yolo weights path")
     
     parser.add_argument("--dont_show", action='store_true',
@@ -57,13 +57,13 @@ def parser():
     parser.add_argument("--ext_output", action='store_false',
                         help="display bbox coordinates of detected objects")
     #config設定檔的路徑要改
-    parser.add_argument("--config_file", default="./yolo_training/cfg/yolov3.cfg",
+    parser.add_argument("--config_file", default="./yolo_training/cfg/yolov3-tiny.cfg",
                         help="path to config file")
     #data的路徑要改
     parser.add_argument("--data_file", default="./yolo_training/cfg/obj.data",
                         help="path to data file")
     
-    parser.add_argument("--thresh", type=float, default=.85,
+    parser.add_argument("--thresh", type=float, default=.8,
                         help="remove detections with confidence below this value")
     return parser.parse_args()
 
@@ -274,6 +274,7 @@ class GUI_window(QtWidgets.QMainWindow):
                 #print("fps_clock == ",self.fps_clock)
             fps_clock+=1
         print("Thread 1 stop")
+        self.cap.release()
     
     def inference(self):
         while self.cap.isOpened():
@@ -288,6 +289,7 @@ class GUI_window(QtWidgets.QMainWindow):
             #印出good,bad,none
             darknet.print_detections(detections, self.args.ext_output)
         print("Thread 2 stop")
+        self.cap.release()
     
     
     def drawing(self):
@@ -429,10 +431,11 @@ class GUI_window(QtWidgets.QMainWindow):
                 self.clock += 1
                 #print("cloock=",self.clock)
                 
-                if cv2.waitKey(fps) == 27:
-                    break
+                #if cv2.waitKey(fps) == 27:
+                   # break
     
         print("Thread 3 stop")
+        self.cap.release()
       
         
     # In[]
@@ -731,19 +734,21 @@ class GUI_window(QtWidgets.QMainWindow):
         
         if event.type() == 105:#105是縮小視窗狀態
             self.close_camera()
-        
+    '''
     def closeEvent(self,event):
         #global f
         if self.check == 1:
             self.timer_camera.stop() 
-            self.cap.release()
+            #self.cap.release()
             print("camera open")
         else:
             print("camera close")
         #f.close()
         print("close window")
+    '''
     def stop(self):
         print("stop pressed")
+        self.cap.release()
         cv2.destroyAllWindows()
         time.sleep(1)
         self.close()
