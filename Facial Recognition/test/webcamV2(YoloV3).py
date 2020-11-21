@@ -48,7 +48,7 @@ def parser():
     parser.add_argument("--out_filename", type=str, default="",
                         help="inference video name. Not saved if empty")
     #weights的路徑要改
-    parser.add_argument("--weights", default="./yolo_training/cfg/weights/yolov3-tiny_16000.weights",
+    parser.add_argument("--weights", default="./yolo_training/cfg/weights/yolov3_400000.weights",
                         help="yolo weights path")
     
     parser.add_argument("--dont_show", action='store_true',
@@ -57,7 +57,7 @@ def parser():
     parser.add_argument("--ext_output", action='store_false',
                         help="display bbox coordinates of detected objects")
     #config設定檔的路徑要改
-    parser.add_argument("--config_file", default="./yolo_training/cfg/yolov3-tiny.cfg",
+    parser.add_argument("--config_file", default="./yolo_training/cfg/yolov3.cfg",
                         help="path to config file")
     #data的路徑要改
     parser.add_argument("--data_file", default="./yolo_training/cfg/obj.data",
