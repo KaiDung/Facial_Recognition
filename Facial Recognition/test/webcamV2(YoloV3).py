@@ -307,7 +307,6 @@ class GUI_window(QtWidgets.QMainWindow):
                 #畫框 + 畫標籤
                 image = darknet.draw_boxes(detections, frame_resized, self.class_colors)
                 
-                
                 for label, confidence, bbox in detections:
                             
                     left,top,right,bottom = darknet.bbox2points(bbox)
@@ -316,116 +315,116 @@ class GUI_window(QtWidgets.QMainWindow):
                     
                     self.face = face
                     self.label_flag = label
-                
+                    
+                    if self.Recognition_check == True:
+                        if detections:
                             
-                if self.Recognition_check == True:
-                    if detections:
-                        
-                            face = self.face
-                            
-                            #進行人臉辨識
-                            t1=time.time()
-                            
-                            scaled_arr = None
-                            try:
-                                scaled_arr = cv2_face(face)
-                            except:
+                                face = self.face
+                                
+                                #進行人臉辨識
+                                t1=time.time()
+                                
                                 scaled_arr = None
-                                
-                            if scaled_arr is not None:
-                                feed_dict = { images_placeholder: scaled_arr, phase_train_placeholder:False ,keep_probability_placeholder:1.0}
-                                embs = sess.run(embeddings, feed_dict=feed_dict)
-                                face_class=['Others']
-                                diff = []
-                                
-                                #尋找最相近的人臉特徵
-                                for emb in emb_arr:
-                                    diff.append(np.mean(np.square(embs[0] - emb)))
-                                min_diff=min(diff)                     
-                                
-                                index=np.argmin(diff)
-                                      
-                                if min_diff<THRED: 
-                                    face_class[0]=class_arr[index]
+                                try:
+                                    scaled_arr = cv2_face(face)
+                                except:
+                                    scaled_arr = None
                                     
-                                
-                                t2=time.time()
-                                
-                                t = int(1/(t2-t1+self.yolo_t))
-                                
-                                #把人名印在圖片上
-                                cv2.putText(image, '{}'.format(face_class[0]), 
-                                        (left,top - 35), 
-                                        cv2.FONT_HERSHEY_SIMPLEX,
-                                        1,name_color, 2)
-                                
-                                #ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
-                                                         
-                                if self.clock % 120 == 0:
-                                    self.recorded_people.clear()
-                                
-                                print("recorded_people = ",self.recorded_people)
-                                
-                                if self.ui.tabWidget.currentIndex() == 0:
-                                    if face_class[0]!='Others' and face_class[0] not in self.recorded_people :
+                                if scaled_arr is not None:
+                                    
+                                    feed_dict = { images_placeholder: scaled_arr, phase_train_placeholder:False ,keep_probability_placeholder:1.0}
+                                    embs = sess.run(embeddings, feed_dict=feed_dict)
+                                    face_class=['Others']
+                                    diff = []
+                                    
+                                    #尋找最相近的人臉特徵
+                                    for emb in emb_arr:
+                                        diff.append(np.mean(np.square(embs[0] - emb)))
+                                    min_diff=min(diff)                     
+                                    
+                                    index=np.argmin(diff)
+                                          
+                                    if min_diff<THRED: 
+                                        face_class[0]=class_arr[index]
                                         
-                                        if self.clock % 60 == 0:
-                                            #人名記錄起來
-                                            self.recorded_people.append(face_class[0])
+                                    
+                                    t2=time.time()
+                                    
+                                    t = int(1/(t2-t1+self.yolo_t))
+                                    
+                                    #把人名印在圖片上
+                                    cv2.putText(image, '{}'.format(face_class[0]), 
+                                            (left,top - 35), 
+                                            cv2.FONT_HERSHEY_SIMPLEX,
+                                            1,name_color, 2)
+                                    
+                                    #ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
+                                                             
+                                    if self.clock % 120 == 0:
+                                        self.recorded_people.clear()
+                                    
+                                    print("recorded_people = ",self.recorded_people)
+                                    
+                                    if self.ui.tabWidget.currentIndex() == 0:
+                                        if face_class[0]!='Others' and face_class[0] not in self.recorded_people :
                                             
-                                            #上傳資料庫search表
-                                            T = time.localtime()
-    
-                                            record_data = {
-                                                  "user_name" : face_class[0],
-                                                  "year" : T.tm_year, 
-                                                  "month": T.tm_mon,
-                                                  "day"  : T.tm_mday,
-                                                  "hour" : T.tm_hour,
-                                                  "min"  : T.tm_min,
-                                                  "sec"  : T.tm_sec,
-                                                  "mask" : label,
-                                                  "table":'search'
-                                            }
-                                            conn = requests.post("http://140.136.150.100/record.php",data = record_data)
-                                            #print(face_class[0],ntime)
-                                            #print(conn.text)       
-                                            self.show_dialog2 = 1
-                                            face_class[0]='Others'
-                                
-                                #印上辨識時間 & 誤差
-                                cv2.putText(image, 'FPS:{}'.format(t/self.fps_value), (10, 20),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 1)
-                    
-                                cv2.putText(image, 'Loss:{:.4f}'.format(min_diff), (100, 20),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 1)
-                        
-                if self.Recognition_check == False:
-                    
-                    if self.ui.tabWidget.currentIndex() == 0:
-                        if self.clock % 120 == 0:
-                            #上傳資料庫search2表
-                            T = time.localtime()
+                                            if self.clock % 60 == 0:
+                                                #人名記錄起來
+                                                self.recorded_people.append(face_class[0])
+                                                
+                                                #上傳資料庫search表
+                                                T = time.localtime()
         
-                            record_data = {
-                                  "user_name" : 'Unknow',
-                                  "year" : T.tm_year, 
-                                  "month": T.tm_mon,
-                                  "day"  : T.tm_mday,
-                                  "hour" : T.tm_hour,
-                                  "min"  : T.tm_min,
-                                  "sec"  : T.tm_sec,
-                                  "mask" : self.label_flag,
-                                  "table":'search2'
-                            }
-                            conn = requests.post("http://140.136.150.100/record.php",data = record_data)
-                            print(conn.text) 
-                            self.show_dialog2 = 1    
+                                                record_data = {
+                                                      "user_name" : face_class[0],
+                                                      "year" : T.tm_year, 
+                                                      "month": T.tm_mon,
+                                                      "day"  : T.tm_mday,
+                                                      "hour" : T.tm_hour,
+                                                      "min"  : T.tm_min,
+                                                      "sec"  : T.tm_sec,
+                                                      "mask" : label,
+                                                      "table":'search'
+                                                }
+                                                conn = requests.post("http://140.136.150.100/record.php",data = record_data)
+                                                #print(face_class[0],ntime)
+                                                #print(conn.text)       
+                                                self.show_dialog2 = 1
+                                                face_class[0]='Others'
+                                    
+                                    #印上辨識時間 & 誤差
+                                    cv2.putText(image, 'FPS:{}'.format(t/self.fps_value), (10, 20),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 1)
                         
+                                    cv2.putText(image, 'Loss:{:.4f}'.format(min_diff), (100, 20),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 1)
+                            
+                    if self.Recognition_check == False:
+                        
+                        if self.ui.tabWidget.currentIndex() == 0:
+                            if self.clock % 120 == 0:
+                                #上傳資料庫search2表
+                                T = time.localtime()
+            
+                                record_data = {
+                                      "user_name" : 'Unknow',
+                                      "year" : T.tm_year, 
+                                      "month": T.tm_mon,
+                                      "day"  : T.tm_mday,
+                                      "hour" : T.tm_hour,
+                                      "min"  : T.tm_min,
+                                      "sec"  : T.tm_sec,
+                                      "mask" : self.label_flag,
+                                      "table":'search2'
+                                }
+                                conn = requests.post("http://140.136.150.100/record.php",data = record_data)
+                                print(conn.text) 
+                                self.show_dialog2 = 1    
+                        #印上FPS
+                        cv2.putText(image, 'FPS:{}'.format(fps/self.fps_value), (10,20),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 1)
                     
-                    #印上FPS
-                    cv2.putText(image, 'FPS:{}'.format(fps/self.fps_value), (10,20),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 1)
+                    
                 
                 self.YOLO_image_queue.put(image) #把RGB圖片存起來
                 self.clock += 1
@@ -702,7 +701,7 @@ class GUI_window(QtWidgets.QMainWindow):
             self.T3 = Thread(target=self.drawing, args=()).start()
             #-------------------------------------------
             self.timer_camera = QtCore.QTimer()
-            self.timer_camera.start(70)
+            self.timer_camera.start(10)
             self.timer_camera.timeout.connect(self.show_image)
             self.check = 1
             
@@ -726,7 +725,7 @@ class GUI_window(QtWidgets.QMainWindow):
                     #self.cap=cv2.VideoCapture(0+cv2.CAP_DSHOW)
                     self.cap=cv2.VideoCapture(self.cam_num)
                     self.timer_camera = QtCore.QTimer()
-                    self.timer_camera.start(70)
+                    self.timer_camera.start(10)
                     self.timer_camera.timeout.connect(self.show_image)
                     print("camera open")
                     self.check = 1
@@ -752,7 +751,7 @@ class GUI_window(QtWidgets.QMainWindow):
         time.sleep(1)
         self.close()
         
-            
+       
 
     # In[3]:detect face   
 def cv2_face(face):
