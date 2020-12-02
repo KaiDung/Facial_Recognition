@@ -113,9 +113,60 @@ class Dialog2_window(QtWidgets.QDialog):
         self.timer.start(3000) #3000毫秒 = 3秒
         self.timer.timeout.connect(self.close_even)
         
-        
     def close_even(self):
         self.close()
+        
+# In[]
+class Dialog3_window(QtWidgets.QDialog):
+    def __init__(self,counter,parent=None):
+        QtWidgets.QDialog.__init__(self)
+        self.ui = uic.loadUi("Dialog3.ui",self)
+        self.setWindowIcon(QtGui.QIcon("window_icon.png"))
+        self.ui.label.setStyleSheet("QLabel{font: bold 24px;}")
+        self.ui.label_2.setStyleSheet("QLabel{font: bold 11px;}")
+        if counter == 3:
+            self.ui.label.setText("辨識失敗次數過多!\n請至Setting介面註冊!")
+        self.show()
+        
+        self.timer = QtCore.QTimer()
+        if counter == 3:
+            self.timer.start(3000) #3000毫秒 = 3秒
+        else:
+            self.timer.start(2000) #2000毫秒 = 2秒
+        self.timer.timeout.connect(self.close_even)
+        
+    def close_even(self):
+        self.close()       
+# In[]
+class Dialog4_window(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        QtWidgets.QDialog.__init__(self)
+        self.ui = uic.loadUi("Dialog4.ui",self)
+        self.setWindowIcon(QtGui.QIcon("window_icon.png"))
+        self.ui.label.setStyleSheet("QLabel{font: bold 20px;}")
+        self.ui.label_2.setStyleSheet("QLabel{font: bold 20px;}")
+        self.ui.setStyleSheet('''QPushButton {
+                                width: 150px;
+                                font-size: 30px;
+                                height: 50px;}''')
+        self.OK_button.clicked.connect(self.close_even)
+        
+        #放nonde照片
+        frame = cv2.imread('none.png')
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
+        self.ui.label_3.setPixmap(QtGui.QPixmap.fromImage(showImage))
+        self.ui.label_3.setScaledContents (True) #自適應縮放大小
+        #放good照片
+        frame = cv2.imread('good.png')
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
+        self.ui.label_4.setPixmap(QtGui.QPixmap.fromImage(showImage))
+        self.ui.label_4.setScaledContents (True) #自適應縮放大小
+        
+    def close_even(self):
+        self.close()  
+        
 # In[]
 class Register_Dialog(QtWidgets.QDialog):
     def __init__(self,var, parent=None):
@@ -178,7 +229,6 @@ class GUI_window(QtWidgets.QMainWindow):
                                   "QWidget{border-radius:5px;}"
                                   "QWidget{background-color:qlineargradient(x1 : 0, y1 : 0, x2 : 0, y2 : 1, stop :  0.0 #f5f9ff,stop :   0.5 #c7dfff,stop :   0.55 #afd2ff,stop :   1.0 #c0dbff);}")
 
-        self.ui.label_3.setStyleSheet("QLabel{font: bold 28px;}")
         self.ui.label_4.setStyleSheet("QLabel{font: bold 28px;}")
 
         self.ui.close_button.clicked.connect(self.close_camera)
@@ -248,22 +298,20 @@ class GUI_window(QtWidgets.QMainWindow):
         self.yolo_t=1
         self.r = 0
         self.show_dialog2 = 0
-        
+        self.show_dialog3 = 0
+        self.dialog3_counter = 0
         self.label_flag =''
+        self.first_time_enter_setting = 0
         
         self.show()
         
     # In[]
     def video_capture(self):
-        fps_clock=1
+        
         while self.cap.isOpened():
             ret, frame = self.cap.read()
             
-            self.fps_value = self.ui.FPS_Slider.value()
-            #print("fps_value=",fps_value)
-            if not ret:
-                break
-            if ret and fps_clock % self.fps_value == 0:
+            if ret :
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 frame_resized = cv2.resize(frame_rgb, (self.d_width, self.d_height),
                                            interpolation=cv2.INTER_LINEAR)
@@ -272,7 +320,6 @@ class GUI_window(QtWidgets.QMainWindow):
                 darknet.copy_image_from_bytes(self.darknet_image, frame_resized.tobytes())
                 self.darknet_image_queue.put(self.darknet_image)
                 #print("fps_clock == ",self.fps_clock)
-            fps_clock+=1
         print("Thread 1 stop")
         self.cap.release()
     
@@ -366,9 +413,9 @@ class GUI_window(QtWidgets.QMainWindow):
                                 print("recorded_people = ",self.recorded_people)
                                 
                                 if self.ui.tabWidget.currentIndex() == 0:
-                                    if face_class[0]!='Others' and face_class[0] not in self.recorded_people :
+                                    if self.clock % 120 == 0:
+                                        if face_class[0]!='Others' and face_class[0] not in self.recorded_people :
                                         
-                                        if self.clock % 60 == 0:
                                             #人名記錄起來
                                             self.recorded_people.append(face_class[0])
                                             
@@ -390,9 +437,12 @@ class GUI_window(QtWidgets.QMainWindow):
                                             #print(face_class[0],ntime)
                                             #print(conn.text)       
                                             self.show_dialog2 = 1
-                                            face_class[0]='Others'
-                        
-                                                
+                                        
+                                        if face_class[0] == 'Others':
+                                            self.show_dialog3 = 1
+                                            self.dialog3_counter += 1
+                                        
+                                        
                             
                     if self.Recognition_check == False:
                         
@@ -571,8 +621,8 @@ class GUI_window(QtWidgets.QMainWindow):
             pic_path = "../new_pictures/"+var+".jpg"
             cv2.imwrite(pic_path,face)
                                     
-            Dialog3 = Register_Dialog(var)
-            result = Dialog3.exec_()
+            register_dialog = Register_Dialog(var)
+            result = register_dialog.exec_()
             if result == 1:
                 #---------------照片上傳雲端--------------------
                 #Drive_upload(pic_path,var)
@@ -669,14 +719,14 @@ class GUI_window(QtWidgets.QMainWindow):
         showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
         
         
-        if self.ui.tabWidget.currentIndex() != 2:
+        if self.ui.tabWidget.currentIndex() == 0:
             self.ui.label.setPixmap(QtGui.QPixmap.fromImage(showImage))
-        else:
+        elif self.ui.tabWidget.currentIndex() == 2:
             self.ui.label_2.setPixmap(QtGui.QPixmap.fromImage(showImage))
-            
+        print("index = ",self.ui.tabWidget.currentIndex())
+        
         #每5分鐘reload一次
         T = time.localtime(time.time())
-        
         if int(T.tm_sec) == 0 and int(T.tm_min) % 5 == 0 and self.r == 0:
             self.reload()
             self.r = 1
@@ -686,6 +736,16 @@ class GUI_window(QtWidgets.QMainWindow):
         if self.show_dialog2 == 1 and self.ui.tabWidget.currentIndex() == 0:
             dialog2 = Dialog2_window(self.label_flag)
             self.show_dialog2 = 0
+            
+        if self.show_dialog3 == 1 and self.ui.tabWidget.currentIndex() == 0:
+            dialog3 = Dialog3_window(self.dialog3_counter)
+            self.show_dialog3 = 0
+            
+        if self.first_time_enter_setting == 0 and self.ui.tabWidget.currentIndex() == 2:
+            dialog4 = Dialog4_window().exec_()
+            self.first_time_enter_setting = 1
+        elif self.ui.tabWidget.currentIndex() != 2:
+            self.first_time_enter_setting = 0
         
     def open_detect(self):
         if self.check == 0:
@@ -697,7 +757,7 @@ class GUI_window(QtWidgets.QMainWindow):
             self.T3 = Thread(target=self.drawing, args=()).start()
             #-------------------------------------------
             self.timer_camera = QtCore.QTimer()
-            self.timer_camera.start(10)
+            self.timer_camera.start(5)
             self.timer_camera.timeout.connect(self.show_image)
             self.check = 1
             
@@ -712,21 +772,22 @@ class GUI_window(QtWidgets.QMainWindow):
             self.ui.label_2.clear()
             self.ui.label_2.setText("No Signal")
             
-            
+     
     def changeEvent(self,event): 
         #print(event.type())
+        '''
         if event.type() == 99:#99是正常視窗狀態
             if self.i == 1:
                 if self.check == 0:
                     #self.cap=cv2.VideoCapture(0+cv2.CAP_DSHOW)
                     self.cap=cv2.VideoCapture(self.cam_num)
                     self.timer_camera = QtCore.QTimer()
-                    self.timer_camera.start(10)
+                    self.timer_camera.start(5)
                     self.timer_camera.timeout.connect(self.show_image)
                     print("camera open")
                     self.check = 1
             self.i = 0 
-        
+        '''
         if event.type() == 105:#105是縮小視窗狀態
             self.close_camera()
     '''
