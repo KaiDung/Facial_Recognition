@@ -620,8 +620,14 @@ class GUI_window(QtWidgets.QMainWindow):
             face = cv2.resize(face, (160, 160), interpolation=cv2.INTER_CUBIC)  
             pic_path = "../new_pictures/"+var+".jpg"
             cv2.imwrite(pic_path,face)
-                                    
-            register_dialog = Register_Dialog(var)
+            
+            register_dialog = Register_Dialog(var)                       
+            if self.label_flag == 'good':
+                btn = register_dialog.buttonBox.button(QDialogButtonBox.Ok)
+                btn.setEnabled(False)
+                btn.setStyleSheet('''background-color: #A0A0A0;
+                                     color: #C0C0C0''')
+            
             result = register_dialog.exec_()
             if result == 1:
                 #---------------照片上傳雲端--------------------
@@ -744,8 +750,6 @@ class GUI_window(QtWidgets.QMainWindow):
         if self.first_time_enter_setting == 0 and self.ui.tabWidget.currentIndex() == 2:
             dialog4 = Dialog4_window().exec_()
             self.first_time_enter_setting = 1
-        elif self.ui.tabWidget.currentIndex() != 2:
-            self.first_time_enter_setting = 0
         
     def open_detect(self):
         if self.check == 0:
