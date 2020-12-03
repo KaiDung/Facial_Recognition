@@ -629,12 +629,13 @@ class GUI_window(QtWidgets.QMainWindow):
                 register_dialog = Register_Dialog(var)
                 #判斷是否第一次註冊
                 if self.ui.setting_checkBox.isChecked():
-                    #確認是否拍了good跟none兩張照片                    
-                    if self.label_flag == 'good' and self.good_setting == 0 or self.label_flag == 'none' and self.none_setting==0:
-                        btn = register_dialog.buttonBox.button(QDialogButtonBox.Ok)
+                    #確認是否拍了good跟none兩張照片  
+                    btn = register_dialog.buttonBox.button(QDialogButtonBox.Ok)
+                    if self.label_flag == 'good' and self.good_setting == 0:
+                        btn.setEnabled(True)
+                    elif self.label_flag == 'none' and self.none_setting==0:
                         btn.setEnabled(True)
                     else:
-                        btn = register_dialog.buttonBox.button(QDialogButtonBox.Ok)
                         btn.setEnabled(False)
                         btn.setStyleSheet('''background-color: #A0A0A0;
                                              color: #C0C0C0''')
@@ -755,11 +756,13 @@ class GUI_window(QtWidgets.QMainWindow):
         if self.first_time_enter_setting == 0 and self.ui.tabWidget.currentIndex() == 2:
             dialog4 = Dialog4_window().exec_()
             self.first_time_enter_setting = 1
-            self.good_seeting = 0
-            self.none_seeting = 0
+            self.good_setting = 0
+            self.none_setting = 0
             
         if self.ui.tabWidget.currentIndex() != 2:
             self.first_time_enter_setting = 0
+        
+        print("good = ",self.good_setting,"none = ",self.none_setting)
         
     def open_detect(self):
         if self.check == 0:
