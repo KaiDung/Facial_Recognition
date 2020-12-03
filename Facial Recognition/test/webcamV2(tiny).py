@@ -21,7 +21,7 @@ import sys
 import json
 import matplotlib.pyplot as plt
 #路徑記得改
-sys.path.append(r'C:\Users\A00\Desktop\Git_Data\Facial Recognition\test\darknet-master\build\darknet\x64')
+sys.path.append(r'C:\Users\allen\Desktop\Git_Data\Facial Recognition\test\darknet-master\build\darknet\x64')
 import requests
 import Drive_API
 from Drive_API import Drive_upload
@@ -228,9 +228,9 @@ class GUI_window(QtWidgets.QMainWindow):
                                   "QWidget{height:100;}"
                                   "QWidget{border-radius:5px;}"
                                   "QWidget{background-color:qlineargradient(x1 : 0, y1 : 0, x2 : 0, y2 : 1, stop :  0.0 #f5f9ff,stop :   0.5 #c7dfff,stop :   0.55 #afd2ff,stop :   1.0 #c0dbff);}")
-
         self.ui.label_4.setStyleSheet("QLabel{font: bold 28px;}")
-
+        self.ui.setting_checkBox.setStyleSheet('''QCheckBox{font: bold 35px;}
+                                                  QCheckBox::indicator{width: 35px;height: 35px}''')
         self.ui.close_button.clicked.connect(self.close_camera)
         self.ui.tabWidget.setTabIcon(0,QtGui.QIcon("home.png"))
         self.ui.tabWidget.setIconSize(QtCore.QSize(30,30))
@@ -294,14 +294,23 @@ class GUI_window(QtWidgets.QMainWindow):
         self.d_height = darknet.network_height(self.network)
         self.darknet_image = darknet.make_image(self.d_width, self.d_height, 3)
         # In[] 雜七雜八flag
-        self.fps_value=1
-        self.yolo_t=1
+        #紀錄yolo辨識所花時間
+        self.yolo_t=0
+        #每五分鐘reload記錄一次的flag
         self.r = 0
+        #辨識成功視窗flag
         self.show_dialog2 = 0
+        #辨識失敗視窗flag
         self.show_dialog3 = 0
+        #紀錄辨識失敗次數
         self.dialog3_counter = 0
+        #記錄口罩配戴狀況
         self.label_flag =''
+        #進入setting畫面時的flag
         self.first_time_enter_setting = 0
+        #拍照時用到的flag 要求good跟none各一張
+        self.good_seeting=0
+        self.none_setting=0
         
         self.show()
         
@@ -330,6 +339,7 @@ class GUI_window(QtWidgets.QMainWindow):
             detections = darknet.detect_image(self.network, self.class_names, self.darknet_image, thresh=self.args.thresh)
             self.detections_queue.put(detections)
             fps = int(1/(time.time() - prev_time))
+            #yolo辨識所花時間
             self.yolo_t = time.time() - prev_time
             self.fps_queue.put(fps)
             #print("FPS: {}".format(fps))
@@ -465,11 +475,11 @@ class GUI_window(QtWidgets.QMainWindow):
                                 conn = requests.post("http://140.136.150.100/record.php",data = record_data)
                                 print(conn.text) 
                                 self.show_dialog2 = 1    
-                
+                #全部處理完的時間點
                 t2=time.time()
                 t = int(1/(t2-t1+self.yolo_t))
                 #印上辨識時間
-                cv2.putText(image, 'FPS:{}'.format(t/self.fps_value), (10, 20),
+                cv2.putText(image, 'FPS:{}'.format(t), (10, 20),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 1)
                 
                 self.YOLO_image_queue.put(image) #把RGB圖片存起來
@@ -605,88 +615,84 @@ class GUI_window(QtWidgets.QMainWindow):
     
     def save_image(self):
         var = self.ui.lineEdit.text()
-        if self.check == 0:
-            self.cap = cv2.VideoCapture(0)
-            #self.cap = cv2.VideoCapture(1+cv2.CAP_DSHOW)
-            self.timer_camera = QtCore.QTimer()
-            self.timer_camera.start(70)
-            self.timer_camera.timeout.connect(self.show_image)
-            self.check = 1
-            
-        if var!='':
-            #save_image前置
-            face = self.face
-            face = cv2.cvtColor(face,cv2.COLOR_BGR2RGB)
-            face = cv2.resize(face, (160, 160), interpolation=cv2.INTER_CUBIC)  
-            pic_path = "../new_pictures/"+var+".jpg"
-            cv2.imwrite(pic_path,face)
-            
-            register_dialog = Register_Dialog(var)                       
-            if self.label_flag == 'good':
-                btn = register_dialog.buttonBox.button(QDialogButtonBox.Ok)
-                btn.setEnabled(False)
-                btn.setStyleSheet('''background-color: #A0A0A0;
-                                     color: #C0C0C0''')
-            
-            result = register_dialog.exec_()
-            if result == 1:
-                #---------------照片上傳雲端--------------------
-                #Drive_upload(pic_path,var)
-                #----------------------------------------------
+        if self.check == 1:
                 
-                #-----------重新執行特徵分析並上傳資料庫---------
-                path = '../new_pictures/'
+            if var!='':
+                #save_image前置，先儲存照片在本地
+                face = self.face
+                face = cv2.cvtColor(face,cv2.COLOR_BGR2RGB)
+                face = cv2.resize(face, (160, 160), interpolation=cv2.INTER_CUBIC)  
+                pic_path = "../new_pictures/"+var+".jpg"
+                cv2.imwrite(pic_path,face)
+                
+                #跳出註冊提醒視窗
+                register_dialog = Register_Dialog(var)
+                #判斷是否第一次註冊
+                if self.ui.setting_checkBox.isChecked():
+                    #確認是否拍了good跟none兩張照片                    
+                    if self.label_flag == 'good' and self.good_seeting == 0 or self.label_flag == 'none' and self.none_seeting==0:
+                        btn = register_dialog.buttonBox.button(QDialogButtonBox.Ok)
+                        btn.setEnabled(True)
+                    else:
+                        btn = register_dialog.buttonBox.button(QDialogButtonBox.Ok)
+                        btn.setEnabled(False)
+                        btn.setStyleSheet('''background-color: #A0A0A0;
+                                             color: #C0C0C0''')
+                
+                result = register_dialog.exec_()
+                if result == 1:
+                    if self.label_flag == 'good':
+                        self.good_seeting = 1
+                    if self.label_flag == "none":
+                        self.none_setting = 1
+                    #---------------照片上傳雲端--------------------
+                    #Drive_upload(pic_path,var)
+                    #----------------------------------------------
+                    
+                    #-----------重新執行特徵分析並上傳資料庫---------
+                    path = '../new_pictures/'
+            
+                    files1 = os.listdir(path)
+                    ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
         
-                files1 = os.listdir(path)
-                ntime = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
-    
-                for step in files1:
-                    if step == "1.txt":
-                        continue
-                    split = os.path.splitext(step)
-                    pic_name = split[0]
+                    for step in files1:
+                        if step == "1.txt":
+                            continue
+                        split = os.path.splitext(step)
+                        pic_name = split[0]
+                        
+                        scaled_arr=[]
+                        img = cv2.imread(path + step)
+                        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                        scaled =cv2.resize(gray,(160,160),interpolation=cv2.INTER_LINEAR)
+                        scaled.astype(float)
+                        scaled = np.array(scaled).reshape(160, 160, 1)
+                        scaled = embeddings_pre.prewhiten(scaled)
+                        scaled_arr.append(scaled)
+                        
+                        feed_dict = { images_placeholder: scaled_arr, phase_train_placeholder:False ,keep_probability_placeholder:1.0}
+                        #---------------------------------上傳資料庫---------------------------------
+                        x = sess.run(embeddings, feed_dict=feed_dict)
+                        Data = {
+                            "user_name" : pic_name,
+                            "embedding" : str(x),
+                            "date"      : str(ntime)
+                        }
+                        conn = requests.post("http://140.136.150.100/upload.php", data = Data)
+                        #----------------------------------------------------------------------------
+                        print(conn.text)
+                    #----------------------------------------------
                     
-                    scaled_arr=[]
-                    img = cv2.imread(path + step)
-                    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                    scaled =cv2.resize(gray,(160,160),interpolation=cv2.INTER_LINEAR)
-                    scaled.astype(float)
-                    scaled = np.array(scaled).reshape(160, 160, 1)
-                    scaled = embeddings_pre.prewhiten(scaled)
-                    scaled_arr.append(scaled)
-                    
-                    feed_dict = { images_placeholder: scaled_arr, phase_train_placeholder:False ,keep_probability_placeholder:1.0}
-                    #---------------------------------上傳資料庫---------------------------------
-                    x = sess.run(embeddings, feed_dict=feed_dict)
-                    Data = {
-                        "user_name" : pic_name,
-                        "embedding" : str(x),
-                        "date"      : str(ntime)
-                    }
-                    conn = requests.post("http://140.136.150.100/upload.php", data = Data)
-                    #----------------------------------------------------------------------------
-                    print(conn.text)
-                #----------------------------------------------
+                    #跳出上傳完成視窗
+                    dialog = Dialog_window()
+                    self.reload()
+                    var = self.ui.lineEdit.setText('')
                 
-                #跳出上傳完成視窗
-                dialog = Dialog_window()
-                self.reload()
-                var = self.ui.lineEdit.setText('')
-            
-            
-            #用完就刪除照片
-            if os.path.exists(pic_path):
-                os.remove(pic_path)
-            '''
-            frame = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
-            showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
-            self.ui.label_2.setPixmap(QtGui.QPixmap.fromImage(showImage))
-            '''
+                
+                #用完就刪除照片
+                if os.path.exists(pic_path):
+                    os.remove(pic_path)
 
-            
-            
-            
-    
     def reload(self):
         global class_arr,emb_arr
         r = requests.get("http://140.136.150.100/download.php")
@@ -729,7 +735,6 @@ class GUI_window(QtWidgets.QMainWindow):
             self.ui.label.setPixmap(QtGui.QPixmap.fromImage(showImage))
         elif self.ui.tabWidget.currentIndex() == 2:
             self.ui.label_2.setPixmap(QtGui.QPixmap.fromImage(showImage))
-        print("index = ",self.ui.tabWidget.currentIndex())
         
         #每5分鐘reload一次
         T = time.localtime(time.time())
@@ -750,6 +755,11 @@ class GUI_window(QtWidgets.QMainWindow):
         if self.first_time_enter_setting == 0 and self.ui.tabWidget.currentIndex() == 2:
             dialog4 = Dialog4_window().exec_()
             self.first_time_enter_setting = 1
+            self.good_seeting = 0
+            self.none_seeting = 0
+            
+        if self.ui.tabWidget.currentIndex() != 2:
+            self.first_time_enter_setting = 0
         
     def open_detect(self):
         if self.check == 0:
@@ -884,15 +894,6 @@ stylesheet = '''
             min-width: 280px;
             min-height: 50px;
         }
-        QCheckBox::indicator{
-            border-style: outset;
-            border-width: 2px;
-            border-radius: 20px;
-            border-color: black;
-            width: 277;
-            height: 50;
-        }
-       
 '''
 
 # In[4]:Run program        
