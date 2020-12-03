@@ -309,7 +309,7 @@ class GUI_window(QtWidgets.QMainWindow):
         #進入setting畫面時的flag
         self.first_time_enter_setting = 0
         #拍照時用到的flag 要求good跟none各一張
-        self.good_seeting=0
+        self.good_setting=0
         self.none_setting=0
         
         self.show()
@@ -630,7 +630,7 @@ class GUI_window(QtWidgets.QMainWindow):
                 #判斷是否第一次註冊
                 if self.ui.setting_checkBox.isChecked():
                     #確認是否拍了good跟none兩張照片                    
-                    if self.label_flag == 'good' and self.good_seeting == 0 or self.label_flag == 'none' and self.none_seeting==0:
+                    if self.label_flag == 'good' and self.good_setting == 0 or self.label_flag == 'none' and self.none_setting==0:
                         btn = register_dialog.buttonBox.button(QDialogButtonBox.Ok)
                         btn.setEnabled(True)
                     else:
@@ -642,8 +642,8 @@ class GUI_window(QtWidgets.QMainWindow):
                 result = register_dialog.exec_()
                 if result == 1:
                     if self.label_flag == 'good':
-                        self.good_seeting = 1
-                    if self.label_flag == "none":
+                        self.good_setting = 1
+                    if self.label_flag == 'none':
                         self.none_setting = 1
                     #---------------照片上傳雲端--------------------
                     #Drive_upload(pic_path,var)
