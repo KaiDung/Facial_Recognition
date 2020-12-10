@@ -35,7 +35,7 @@ from threading import Thread, enumerate
 from queue import Queue
 # In[1]:Load target features
 #open camera
-THRED=0.75
+THRED=0.86
 left_w = 200
 left_h = 160
 face_scale = 228
@@ -397,8 +397,8 @@ class GUI_window(QtWidgets.QMainWindow):
                                 #尋找最相近的人臉特徵
                                 for emb in emb_arr:
                                     diff.append(np.mean(np.square(embs[0] - emb)))
-                                min_diff=min(diff)                     
                                 
+                                min_diff=min(diff)
                                 index=np.argmin(diff)
                                       
                                 if min_diff<THRED: 
@@ -718,6 +718,7 @@ class GUI_window(QtWidgets.QMainWindow):
                 
         class_arr = np.array(arr1)
         emb_arr = np.array(arr2)
+        
         print("-----Reload完成----")
         
     def show_image(self):
@@ -762,7 +763,6 @@ class GUI_window(QtWidgets.QMainWindow):
         if self.ui.tabWidget.currentIndex() != 2:
             self.first_time_enter_setting = 0
         
-        print("good = ",self.good_setting,"none = ",self.none_setting)
         
     def open_detect(self):
         if self.check == 0:

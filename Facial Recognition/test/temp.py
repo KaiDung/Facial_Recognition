@@ -48,7 +48,7 @@ def parser():
     parser.add_argument("--out_filename", type=str, default="",
                         help="inference video name. Not saved if empty")
     #weights的路徑要改
-    parser.add_argument("--weights", default="./yolo_training/cfg/weights/yolov3-400000.weights",
+    parser.add_argument("--weights", default="./yolo_training/cfg/weights/yolov3-tiny_16000.weights",
                         help="yolo weights path")
     
     parser.add_argument("--dont_show", action='store_true',
@@ -57,7 +57,7 @@ def parser():
     parser.add_argument("--ext_output", action='store_false',
                         help="display bbox coordinates of detected objects")
     #config設定檔的路徑要改
-    parser.add_argument("--config_file", default="./yolo_training/cfg/yolov3.cfg",
+    parser.add_argument("--config_file", default="./yolo_training/cfg/yolov3-tiny.cfg",
                         help="path to config file")
     #data的路徑要改
     parser.add_argument("--data_file", default="./yolo_training/cfg/obj.data",
@@ -395,10 +395,21 @@ class GUI_window(QtWidgets.QMainWindow):
                                 diff = []
                                 
                                 #尋找最相近的人臉特徵
+                                #歐式距離算法
+                                '''
                                 for emb in emb_arr:
-                                    diff.append(np.mean(np.square(embs[0] - emb)))
+                                    diff.append(np.mean(np.square(embs[0] - emb)))'''
+                                #馬氏距離算法
+                                
+                                for emb in emb_arr:
+                                    delta = np.subtract(embs[0],emb)
+                                    delta = np.reshape(delta,(1,256))
+                                    deltaT = np.reshape(delta,(256,1))
+                                    dM = np.dot(np.dot(delta,self.Inv_Var),deltaT)
+                                    diff.append(dM)
                                 
                                 min_diff=min(diff)
+                                print("min_diff = ",float(min_diff))
                                 index=np.argmin(diff)
                                       
                                 if min_diff<THRED: 
@@ -411,7 +422,7 @@ class GUI_window(QtWidgets.QMainWindow):
                                         1,name_color, 2)
                                 
                                 #把loss印在人臉附近
-                                cv2.putText(image, 'loss:{:.4f}'.format(min_diff),(left,top - 25),
+                                cv2.putText(image, 'loss:{L}'.format(L=min_diff),(left,top - 25),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 2)
                                 
                                 
@@ -420,7 +431,7 @@ class GUI_window(QtWidgets.QMainWindow):
                                 if self.clock % 120 == 0:
                                     self.recorded_people.clear()
                                 
-                                print("recorded_people = ",self.recorded_people)
+                                #print("recorded_people = ",self.recorded_people)
                                 
                                 if self.ui.tabWidget.currentIndex() == 0:
                                     if self.clock % 120 == 0:
@@ -614,6 +625,7 @@ class GUI_window(QtWidgets.QMainWindow):
             self.close()
     
     def save_image(self):
+        
         var = self.ui.lineEdit.text()
         if self.check == 1:
                 
@@ -718,7 +730,23 @@ class GUI_window(QtWidgets.QMainWindow):
                 
         class_arr = np.array(arr1)
         emb_arr = np.array(arr2)
-        
+        #------------------------計算馬氏距離前置-----------------------------#
+        #資料集n個樣本 256個維度
+        self.X = np.reshape(emb_arr[0],(256,1))
+        for emb in emb_arr:
+            #先reshape成(256,1)
+            temp = np.reshape(emb,(256,1))
+            if (temp==self.X).all():
+                continue
+            else:
+                self.X = np.hstack((self.X,temp))
+        print("X = ",self.X.shape)
+        #計算變異數矩陣
+        self.Var = np.cov(self.X)
+        print("Var = ",self.Var.shape)
+        #找變異數矩陣的反矩陣
+        self.Inv_Var = np.linalg.inv(self.Var)
+        #--------------------------------------------------------------------#
         print("-----Reload完成----")
         
     def show_image(self):
@@ -763,7 +791,6 @@ class GUI_window(QtWidgets.QMainWindow):
         if self.ui.tabWidget.currentIndex() != 2:
             self.first_time_enter_setting = 0
         
-        print("good = ",self.good_setting,"none = ",self.none_setting)
         
     def open_detect(self):
         if self.check == 0:
@@ -909,6 +936,7 @@ if __name__ == "__main__":
         embeddings = tf.get_default_graph().get_tensor_by_name("Mul:0")
         phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
         keep_probability_placeholder= tf.get_default_graph().get_tensor_by_name('keep_probability:0')
+
         if not QtWidgets.QApplication.instance():
             app = QtWidgets.QApplication(sys.argv)
             app.setStyleSheet(stylesheet)
@@ -917,3 +945,6 @@ if __name__ == "__main__":
             app.setStyleSheet(stylesheet)
         myApp = GUI_window(0)
         sys.exit(app.exec_())
+
+        
+        
