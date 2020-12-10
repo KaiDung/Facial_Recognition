@@ -48,7 +48,7 @@ def parser():
     parser.add_argument("--out_filename", type=str, default="",
                         help="inference video name. Not saved if empty")
     #weights的路徑要改
-    parser.add_argument("--weights", default="./yolo_training/cfg/weights/yolov3-400000.weights",
+    parser.add_argument("--weights", default="./yolo_training/cfg/weights/yolov3_400000.weights",
                         help="yolo weights path")
     
     parser.add_argument("--dont_show", action='store_true',
@@ -775,7 +775,8 @@ class GUI_window(QtWidgets.QMainWindow):
             self.T3 = Thread(target=self.drawing, args=()).start()
             #-------------------------------------------
             self.timer_camera = QtCore.QTimer()
-            self.timer_camera.start(5)
+            #V3要調慢一點大概70
+            self.timer_camera.start(70)
             self.timer_camera.timeout.connect(self.show_image)
             self.check = 1
             
