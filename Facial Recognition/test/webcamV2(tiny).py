@@ -21,10 +21,11 @@ import sys
 import json
 import matplotlib.pyplot as plt
 #路徑記得改
-sys.path.append(r'C:\Users\allen\Desktop\Git_Data\Facial Recognition\test\darknet-master\build\darknet\x64')
+sys.path.append(r'C:\Users\A00\Desktop\Git_Data\Facial Recognition\test\darknet-master\build\darknet\x64')
 import requests
 import Drive_API
 from Drive_API import Drive_upload
+import pygame
 #import matplotlib.pyplot as plt
 # In[] 口罩辨識需要的函式庫
 from ctypes import *
@@ -39,11 +40,13 @@ THRED=0.86
 left_w = 200
 left_h = 160
 face_scale = 228
+pygame.mixer.init()
+pygame.mixer.music.load('bb.wav')
 # In[]
 #-----------------------口罩辨識初始化definiton--------------------------------
-def parser():
+def parser(cam_num):
     parser = argparse.ArgumentParser(description="YOLO Object Detection")
-    parser.add_argument("--input", type=str, default=0,
+    parser.add_argument("--input", type=str, default=cam_num,
                         help="video source. If empty, uses webcam 0 stream")
     parser.add_argument("--out_filename", type=str, default="",
                         help="inference video name. Not saved if empty")
@@ -104,8 +107,10 @@ class Dialog2_window(QtWidgets.QDialog):
             self.ui.label.setText("辨識成功!允許通行!")
         elif label_flag == 'bad':
             self.ui.label.setText("請把口罩戴好!並重新辨識!")
+            pygame.mixer.music.play()
         elif label_flag == 'none':
             self.ui.label.setText("請把口罩戴起來!並重新辨識!")
+            pygame.mixer.music.play()
         
         self.show()
         
@@ -127,6 +132,7 @@ class Dialog3_window(QtWidgets.QDialog):
         if counter == 3:
             self.ui.label.setText("辨識失敗次數過多!\n請至Setting介面註冊!")
         self.show()
+        pygame.mixer.music.play()
         
         self.timer = QtCore.QTimer()
         if counter == 3:
@@ -169,11 +175,12 @@ class Dialog4_window(QtWidgets.QDialog):
         
 # In[]
 class Register_Dialog(QtWidgets.QDialog):
-    def __init__(self,var, parent=None):
+    def __init__(self,var,first,label_g,label_n, parent=None):
         QtWidgets.QDialog.__init__(self)
         self.ui = uic.loadUi("Register_Dialog.ui",self)
         self.setWindowIcon(QtGui.QIcon("window_icon.png"))
-        self.ui.label.setStyleSheet("QLabel{font: bold 22px;}")
+        self.ui.label.setStyleSheet("QLabel{font: bold 20px;}")
+        self.ui.label_2.setStyleSheet("QLabel{font: bold 14px;color:red}")
         self.ui.buttonBox.setStyleSheet('''QPushButton {
                                         width: 150px;
                                         font-size: 30px;
@@ -185,6 +192,16 @@ class Register_Dialog(QtWidgets.QDialog):
         showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
         self.ui.img_label.setPixmap(QtGui.QPixmap.fromImage(showImage))
         self.ui.img_label.setScaledContents (True) #自適應縮放大小
+        
+        if first == True:
+            text = "還缺少"
+            if label_g == 0:
+                text += " 正確配戴口罩的照片 "
+            if label_n == 0:
+                text += " 沒有配戴口罩的照片"
+            if label_g == 1 and label_n == 1 :
+                text = "欲註冊更多照片請將'"'第一次註冊'"'取消勾選"
+            self.ui.label_2.setText(text)
         
         #判斷按OK還是按Cancel
         self.buttonBox.accepted.connect(self.accept)
@@ -228,7 +245,7 @@ class GUI_window(QtWidgets.QMainWindow):
                                   "QWidget{height:100;}"
                                   "QWidget{border-radius:5px;}"
                                   "QWidget{background-color:qlineargradient(x1 : 0, y1 : 0, x2 : 0, y2 : 1, stop :  0.0 #f5f9ff,stop :   0.5 #c7dfff,stop :   0.55 #afd2ff,stop :   1.0 #c0dbff);}")
-        self.ui.label_4.setStyleSheet("QLabel{font: bold 28px;}")
+        self.ui.label_4.setStyleSheet("QLabel{font: bold 20px;}")
         self.ui.setting_checkBox.setStyleSheet('''QCheckBox{font: bold 35px;}
                                                   QCheckBox::indicator{width: 35px;height: 35px}''')
         self.ui.close_button.clicked.connect(self.close_camera)
@@ -278,7 +295,7 @@ class GUI_window(QtWidgets.QMainWindow):
         self.recorded_people=[]
         self.clock = 1
 
-        self.args =parser()
+        self.args =parser(cam_num)
         
         check_arguments_errors(self.args)
         self.network, self.class_names, self.class_colors = darknet.load_network(
@@ -420,7 +437,7 @@ class GUI_window(QtWidgets.QMainWindow):
                                 if self.clock % 120 == 0:
                                     self.recorded_people.clear()
                                 
-                                print("recorded_people = ",self.recorded_people)
+                                #print("recorded_people = ",self.recorded_people)
                                 
                                 if self.ui.tabWidget.currentIndex() == 0:
                                     if self.clock % 120 == 0:
@@ -626,7 +643,8 @@ class GUI_window(QtWidgets.QMainWindow):
                 cv2.imwrite(pic_path,face)
                 
                 #跳出註冊提醒視窗
-                register_dialog = Register_Dialog(var)
+                
+                register_dialog = Register_Dialog(var,self.ui.setting_checkBox.isChecked(),self.good_setting,self.none_setting)
                 #判斷是否第一次註冊
                 if self.ui.setting_checkBox.isChecked():
                     #確認是否拍了good跟none兩張照片  
@@ -727,7 +745,10 @@ class GUI_window(QtWidgets.QMainWindow):
             frame = self.YOLO_image_queue.get()#把BGR圖片拿出來用
             
         #隨視窗縮放
-        frame = cv2.resize(frame,(int((self.ui.label.height()-16)/3)*4,(int((self.ui.label.height()-16)/3)*3)))
+        if self.ui.tabWidget.currentIndex() == 0:
+            frame = cv2.resize(frame,(int((self.ui.label.height()-16)/3)*4,(int((self.ui.label.height()-16)/3)*3)))
+        elif self.ui.tabWidget.currentIndex() == 2:
+            frame = cv2.resize(frame,(int((self.ui.label_2.height()-16)/3)*4,(int((self.ui.label_2.height()-16)/3)*3)))
         
         #呈現圖片
         showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
@@ -752,6 +773,8 @@ class GUI_window(QtWidgets.QMainWindow):
             
         if self.show_dialog3 == 1 and self.ui.tabWidget.currentIndex() == 0:
             dialog3 = Dialog3_window(self.dialog3_counter)
+            if self.dialog3_counter>=3:
+                self.dialog3_counter = 0
             self.show_dialog3 = 0
             
         if self.first_time_enter_setting == 0 and self.ui.tabWidget.currentIndex() == 2:
@@ -762,7 +785,6 @@ class GUI_window(QtWidgets.QMainWindow):
             
         if self.ui.tabWidget.currentIndex() != 2:
             self.first_time_enter_setting = 0
-        
         
     def open_detect(self):
         if self.check == 0:
