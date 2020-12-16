@@ -35,10 +35,8 @@ import argparse
 from threading import Thread, enumerate
 from queue import Queue
 # In[1]:Load target features
-#歐氏距離
-Threshold = 0.85
-#標準化歐氏距離
-#Threshold = 21
+#open camera
+THRED=50
 left_w = 200
 left_h = 160
 face_scale = 228
@@ -53,7 +51,7 @@ def parser(cam_num):
     parser.add_argument("--out_filename", type=str, default="",
                         help="inference video name. Not saved if empty")
     #weights的路徑要改
-    parser.add_argument("--weights", default="./yolo_training/cfg/weights/yolov3_400000.weights",
+    parser.add_argument("--weights", default="./yolo_training/cfg/weights/yolov3-tiny_16000.weights",
                         help="yolo weights path")
     
     parser.add_argument("--dont_show", action='store_true',
@@ -62,13 +60,13 @@ def parser(cam_num):
     parser.add_argument("--ext_output", action='store_false',
                         help="display bbox coordinates of detected objects")
     #config設定檔的路徑要改
-    parser.add_argument("--config_file", default="./yolo_training/cfg/yolov3.cfg",
+    parser.add_argument("--config_file", default="./yolo_training/cfg/yolov3-tiny.cfg",
                         help="path to config file")
     #data的路徑要改
     parser.add_argument("--data_file", default="./yolo_training/cfg/obj.data",
                         help="path to data file")
     
-    parser.add_argument("--thresh", type=float, default=.75,
+    parser.add_argument("--thresh", type=float, default=.8,
                         help="remove detections with confidence below this value")
     return parser.parse_args()
 
@@ -363,7 +361,7 @@ class GUI_window(QtWidgets.QMainWindow):
             self.fps_queue.put(fps)
             #print("FPS: {}".format(fps))
             #印出good,bad,none
-            #darknet.print_detections(detections, self.args.ext_output)
+            darknet.print_detections(detections, self.args.ext_output)
         print("Thread 2 stop")
         self.cap.release()
     
@@ -414,13 +412,21 @@ class GUI_window(QtWidgets.QMainWindow):
                                 diff = []
                                 
                                 #尋找最相近的人臉特徵
+                                X = np.reshape(embs[0],(1,256))
+                                for data in emb_arr:
+                                    X = np.vstack((X,np.reshape(data,(1,256))))
+                                print(X.shape)
+                                sk=np.var(X,axis=0,ddof=1)
                                 for emb in emb_arr:
-                                    diff.append(np.mean(np.square(embs[0] - emb)))
-                                
+                                    x = embs[0] 
+                                    y = emb
+                                    d = np.sqrt(((x - y) ** 2 /sk).sum())
+                                    diff.append(d)
+                                    
                                 min_diff=min(diff)
                                 index=np.argmin(diff)
                                       
-                                if min_diff<Threshold: 
+                                if min_diff<THRED: 
                                     face_class[0]=class_arr[index]
                                                                                                      
                                 #把人名印在圖片上
@@ -716,8 +722,8 @@ class GUI_window(QtWidgets.QMainWindow):
 
     def reload(self):
         global class_arr,emb_arr
-        r = requests.get("http://140.136.150.100/download_test.php")#沒有sample
-        #r = requests.get("http://140.136.150.100/download.php")    #有sample
+        r = requests.get("http://140.136.150.100/download_test.php")
+        
         hold =""
         stop=0
         arr1 = []

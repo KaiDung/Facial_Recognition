@@ -21,7 +21,7 @@ import sys
 import json
 import matplotlib.pyplot as plt
 #路徑記得改
-sys.path.append(r'C:\Users\A00\Desktop\Git_Data\Facial Recognition\test\darknet-master\build\darknet\x64')
+sys.path.append(r'C:\Users\allen\Desktop\Git_Data\Facial Recognition\test\darknet-master\build\darknet\x64')
 import requests
 import Drive_API
 from Drive_API import Drive_upload
@@ -35,8 +35,10 @@ import argparse
 from threading import Thread, enumerate
 from queue import Queue
 # In[1]:Load target features
-#open camera
-THRED=0.86
+#歐氏距離
+Threshold = 0.85
+#標準化歐氏距離
+#Threshold = 21
 left_w = 200
 left_h = 160
 face_scale = 228
@@ -66,7 +68,7 @@ def parser(cam_num):
     parser.add_argument("--data_file", default="./yolo_training/cfg/obj.data",
                         help="path to data file")
     
-    parser.add_argument("--thresh", type=float, default=.8,
+    parser.add_argument("--thresh", type=float, default=.75,
                         help="remove detections with confidence below this value")
     return parser.parse_args()
 
@@ -361,7 +363,7 @@ class GUI_window(QtWidgets.QMainWindow):
             self.fps_queue.put(fps)
             #print("FPS: {}".format(fps))
             #印出good,bad,none
-            darknet.print_detections(detections, self.args.ext_output)
+            #darknet.print_detections(detections, self.args.ext_output)
         print("Thread 2 stop")
         self.cap.release()
     
@@ -418,7 +420,7 @@ class GUI_window(QtWidgets.QMainWindow):
                                 min_diff=min(diff)
                                 index=np.argmin(diff)
                                       
-                                if min_diff<THRED: 
+                                if min_diff<Threshold: 
                                     face_class[0]=class_arr[index]
                                                                                                      
                                 #把人名印在圖片上
@@ -714,8 +716,8 @@ class GUI_window(QtWidgets.QMainWindow):
 
     def reload(self):
         global class_arr,emb_arr
-        r = requests.get("http://140.136.150.100/download.php")
-        
+        r = requests.get("http://140.136.150.100/download_test.php")#沒有sample
+        #r = requests.get("http://140.136.150.100/download.php")    #有sample
         hold =""
         stop=0
         arr1 = []

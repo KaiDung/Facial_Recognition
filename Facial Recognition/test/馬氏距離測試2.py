@@ -25,6 +25,7 @@ sys.path.append(r'C:\Users\allen\Desktop\Git_Data\Facial Recognition\test\darkne
 import requests
 import Drive_API
 from Drive_API import Drive_upload
+import pygame
 #import matplotlib.pyplot as plt
 # In[] 口罩辨識需要的函式庫
 from ctypes import *
@@ -35,15 +36,17 @@ from threading import Thread, enumerate
 from queue import Queue
 # In[1]:Load target features
 #open camera
-THRED=0.86
+THRED=25
 left_w = 200
 left_h = 160
 face_scale = 228
+pygame.mixer.init()
+pygame.mixer.music.load('bb.wav')
 # In[]
 #-----------------------口罩辨識初始化definiton--------------------------------
-def parser():
+def parser(cam_num):
     parser = argparse.ArgumentParser(description="YOLO Object Detection")
-    parser.add_argument("--input", type=str, default=0,
+    parser.add_argument("--input", type=str, default=cam_num,
                         help="video source. If empty, uses webcam 0 stream")
     parser.add_argument("--out_filename", type=str, default="",
                         help="inference video name. Not saved if empty")
@@ -104,8 +107,10 @@ class Dialog2_window(QtWidgets.QDialog):
             self.ui.label.setText("辨識成功!允許通行!")
         elif label_flag == 'bad':
             self.ui.label.setText("請把口罩戴好!並重新辨識!")
+            pygame.mixer.music.play()
         elif label_flag == 'none':
             self.ui.label.setText("請把口罩戴起來!並重新辨識!")
+            pygame.mixer.music.play()
         
         self.show()
         
@@ -127,6 +132,7 @@ class Dialog3_window(QtWidgets.QDialog):
         if counter == 3:
             self.ui.label.setText("辨識失敗次數過多!\n請至Setting介面註冊!")
         self.show()
+        pygame.mixer.music.play()
         
         self.timer = QtCore.QTimer()
         if counter == 3:
@@ -169,11 +175,12 @@ class Dialog4_window(QtWidgets.QDialog):
         
 # In[]
 class Register_Dialog(QtWidgets.QDialog):
-    def __init__(self,var, parent=None):
+    def __init__(self,var,first,label_g,label_n, parent=None):
         QtWidgets.QDialog.__init__(self)
         self.ui = uic.loadUi("Register_Dialog.ui",self)
         self.setWindowIcon(QtGui.QIcon("window_icon.png"))
-        self.ui.label.setStyleSheet("QLabel{font: bold 22px;}")
+        self.ui.label.setStyleSheet("QLabel{font: bold 20px;}")
+        self.ui.label_2.setStyleSheet("QLabel{font: bold 14px;color:red}")
         self.ui.buttonBox.setStyleSheet('''QPushButton {
                                         width: 150px;
                                         font-size: 30px;
@@ -185,6 +192,16 @@ class Register_Dialog(QtWidgets.QDialog):
         showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
         self.ui.img_label.setPixmap(QtGui.QPixmap.fromImage(showImage))
         self.ui.img_label.setScaledContents (True) #自適應縮放大小
+        
+        if first == True:
+            text = "還缺少"
+            if label_g == 0:
+                text += " 正確配戴口罩的照片 "
+            if label_n == 0:
+                text += " 沒有配戴口罩的照片"
+            if label_g == 1 and label_n == 1 :
+                text = "欲註冊更多照片請將'"'第一次註冊'"'取消勾選"
+            self.ui.label_2.setText(text)
         
         #判斷按OK還是按Cancel
         self.buttonBox.accepted.connect(self.accept)
@@ -228,7 +245,7 @@ class GUI_window(QtWidgets.QMainWindow):
                                   "QWidget{height:100;}"
                                   "QWidget{border-radius:5px;}"
                                   "QWidget{background-color:qlineargradient(x1 : 0, y1 : 0, x2 : 0, y2 : 1, stop :  0.0 #f5f9ff,stop :   0.5 #c7dfff,stop :   0.55 #afd2ff,stop :   1.0 #c0dbff);}")
-        self.ui.label_4.setStyleSheet("QLabel{font: bold 28px;}")
+        self.ui.label_4.setStyleSheet("QLabel{font: bold 20px;}")
         self.ui.setting_checkBox.setStyleSheet('''QCheckBox{font: bold 35px;}
                                                   QCheckBox::indicator{width: 35px;height: 35px}''')
         self.ui.close_button.clicked.connect(self.close_camera)
@@ -278,7 +295,7 @@ class GUI_window(QtWidgets.QMainWindow):
         self.recorded_people=[]
         self.clock = 1
 
-        self.args =parser()
+        self.args =parser(cam_num)
         
         check_arguments_errors(self.args)
         self.network, self.class_names, self.class_colors = darknet.load_network(
@@ -344,7 +361,7 @@ class GUI_window(QtWidgets.QMainWindow):
             self.fps_queue.put(fps)
             #print("FPS: {}".format(fps))
             #印出good,bad,none
-            darknet.print_detections(detections, self.args.ext_output)
+            #darknet.print_detections(detections, self.args.ext_output)
         print("Thread 2 stop")
         self.cap.release()
     
@@ -394,22 +411,30 @@ class GUI_window(QtWidgets.QMainWindow):
                                 face_class=['Others']
                                 diff = []
                                 
-                                #尋找最相近的人臉特徵
-                                #歐式距離算法
-                                '''
+                                '''#尋找最相近的人臉特徵
                                 for emb in emb_arr:
                                     diff.append(np.mean(np.square(embs[0] - emb)))'''
-                                #馬氏距離算法
+                                    
+                                X = np.reshape(embs[0],(256,1))
+                                for xm in emb_arr:
+                                    temp = np.reshape(xm,(256,1))
+                                    X = np.hstack((X,temp)) #水平堆疊
+                                print(X.shape)              #(256,308)
+                                Var = np.cov(X)             # Sigma
+                                print(Var.shape)            #(256,256)
+                                Var_inv =np.linalg.inv(Var) # Sigma^-1
                                 
-                                for emb in emb_arr:
-                                    delta = np.subtract(embs[0],emb)
-                                    delta = np.reshape(delta,(1,256))
-                                    deltaT = np.reshape(delta,(256,1))
-                                    dM = np.dot(np.dot(delta,self.Inv_Var),deltaT)
-                                    diff.append(dM)
-                                
-                                min_diff=min(diff)
-                                print("min_diff = ",float(min_diff))
+                                for emb in emb_arr: #跟所有樣本人臉計算距離
+                                    x = embs[0] #陌生人臉
+                                    y = emb     #樣本人臉
+                                    deltaT = np.reshape((x - y).T,(1,256))  #(x - y)T
+                                    #print("deltaT = ",deltaT.shape)
+                                    delta = np.reshape((x - y),(256,1))     #(x - y)
+                                    #print("delta = ",delta.shape)
+                                    dM = np.sqrt(np.dot(np.dot(deltaT,Var_inv),delta))
+                                    diff.append(dM) 
+                                    
+                                min_diff=min(diff) #找最小距離
                                 index=np.argmin(diff)
                                       
                                 if min_diff<THRED: 
@@ -422,7 +447,7 @@ class GUI_window(QtWidgets.QMainWindow):
                                         1,name_color, 2)
                                 
                                 #把loss印在人臉附近
-                                cv2.putText(image, 'loss:{L}'.format(L=min_diff),(left,top - 25),
+                                cv2.putText(image, 'loss:{}'.format(min_diff),(left,top - 25),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,204,0), 2)
                                 
                                 
@@ -625,7 +650,6 @@ class GUI_window(QtWidgets.QMainWindow):
             self.close()
     
     def save_image(self):
-        
         var = self.ui.lineEdit.text()
         if self.check == 1:
                 
@@ -638,7 +662,8 @@ class GUI_window(QtWidgets.QMainWindow):
                 cv2.imwrite(pic_path,face)
                 
                 #跳出註冊提醒視窗
-                register_dialog = Register_Dialog(var)
+                
+                register_dialog = Register_Dialog(var,self.ui.setting_checkBox.isChecked(),self.good_setting,self.none_setting)
                 #判斷是否第一次註冊
                 if self.ui.setting_checkBox.isChecked():
                     #確認是否拍了good跟none兩張照片  
@@ -730,23 +755,7 @@ class GUI_window(QtWidgets.QMainWindow):
                 
         class_arr = np.array(arr1)
         emb_arr = np.array(arr2)
-        #------------------------計算馬氏距離前置-----------------------------#
-        #資料集n個樣本 256個維度
-        self.X = np.reshape(emb_arr[0],(256,1))
-        for emb in emb_arr:
-            #先reshape成(256,1)
-            temp = np.reshape(emb,(256,1))
-            if (temp==self.X).all():
-                continue
-            else:
-                self.X = np.hstack((self.X,temp))
-        print("X = ",self.X.shape)
-        #計算變異數矩陣
-        self.Var = np.cov(self.X)
-        print("Var = ",self.Var.shape)
-        #找變異數矩陣的反矩陣
-        self.Inv_Var = np.linalg.inv(self.Var)
-        #--------------------------------------------------------------------#
+        
         print("-----Reload完成----")
         
     def show_image(self):
@@ -755,7 +764,10 @@ class GUI_window(QtWidgets.QMainWindow):
             frame = self.YOLO_image_queue.get()#把BGR圖片拿出來用
             
         #隨視窗縮放
-        frame = cv2.resize(frame,(int((self.ui.label.height()-16)/3)*4,(int((self.ui.label.height()-16)/3)*3)))
+        if self.ui.tabWidget.currentIndex() == 0:
+            frame = cv2.resize(frame,(int((self.ui.label.height()-16)/3)*4,(int((self.ui.label.height()-16)/3)*3)))
+        elif self.ui.tabWidget.currentIndex() == 2:
+            frame = cv2.resize(frame,(int((self.ui.label_2.height()-16)/3)*4,(int((self.ui.label_2.height()-16)/3)*3)))
         
         #呈現圖片
         showImage = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888)
@@ -780,6 +792,8 @@ class GUI_window(QtWidgets.QMainWindow):
             
         if self.show_dialog3 == 1 and self.ui.tabWidget.currentIndex() == 0:
             dialog3 = Dialog3_window(self.dialog3_counter)
+            if self.dialog3_counter>=3:
+                self.dialog3_counter = 0
             self.show_dialog3 = 0
             
         if self.first_time_enter_setting == 0 and self.ui.tabWidget.currentIndex() == 2:
@@ -790,7 +804,6 @@ class GUI_window(QtWidgets.QMainWindow):
             
         if self.ui.tabWidget.currentIndex() != 2:
             self.first_time_enter_setting = 0
-        
         
     def open_detect(self):
         if self.check == 0:
@@ -936,7 +949,6 @@ if __name__ == "__main__":
         embeddings = tf.get_default_graph().get_tensor_by_name("Mul:0")
         phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
         keep_probability_placeholder= tf.get_default_graph().get_tensor_by_name('keep_probability:0')
-
         if not QtWidgets.QApplication.instance():
             app = QtWidgets.QApplication(sys.argv)
             app.setStyleSheet(stylesheet)
@@ -945,6 +957,3 @@ if __name__ == "__main__":
             app.setStyleSheet(stylesheet)
         myApp = GUI_window(0)
         sys.exit(app.exec_())
-
-        
-        
